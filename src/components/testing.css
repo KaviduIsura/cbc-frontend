@@ -1,0 +1,23 @@
+.background{
+    border: 2px solid black;
+    width: 450px;
+    height: 290px ;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+button{
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    font-size: 60px;
+    background-color: burlywood;
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin: 20px;
+}
+span{
+    font-size: 60px;
+}
