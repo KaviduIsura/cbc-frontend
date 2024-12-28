@@ -123,7 +123,7 @@ export default function AddProductForm() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
               placeholder="Enter Stock Quantity"
               value={stock}
-              onClick={(e) => {
+              onChange={(e) => {
                 setStock(e.target.value);
               }}
             />
@@ -142,14 +142,14 @@ export default function AddProductForm() {
               }}
             />
           </div>
-          <button
-            type="submit"
-            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 text-sm"
-            onClick={handleSubmit}
-          >
-            Add Product
-          </button>
         </form>
+        <button
+          type="submit"
+          className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 text-sm"
+          onClick={handleSubmit}
+        >
+          Add Product
+        </button>
       </div>
     </div>
   );

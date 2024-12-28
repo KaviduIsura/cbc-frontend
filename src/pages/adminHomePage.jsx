@@ -2,7 +2,6 @@ import { Link, Route, Routes } from "react-router-dom";
 import { GoGraph } from "react-icons/go"; // Icon for Dashboard
 import { FaBox, FaShoppingCart, FaUsers } from "react-icons/fa"; // Icons for Products, Orders, and Customers
 import AdminProductsPage from "./admin/adminProductsPage";
-import addProductForm from "./admin/addProductForm";
 import AddProductForm from "./admin/addProductForm";
 
 export default function AdminHomePage() {
