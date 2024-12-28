@@ -1,4 +1,6 @@
+import axios from "axios";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 export default function AddProductForm() {
   const [productId, setProductId] = useState("");
@@ -6,21 +8,34 @@ export default function AddProductForm() {
   const [alternativeNames, setAlternativeNames] = useState("");
   const [imageUrls, setImageUrls] = useState("");
   const [price, setPrice] = useState("");
-  const [lasrPrice, setLastPrice] = useState("");
+  const [lastPrice, setLastPrice] = useState("");
   const [stock, setStock] = useState("");
   const [description, setDescription] = useState("");
 
-  function handleSubmit() {
-    console.log({
-      productId,
-      productName,
-      alternativeNames,
-      imageUrls,
-      price,
-      lasrPrice,
-      stock,
-      description,
-    });
+  async function handleSubmit() {
+    const altNames = alternativeNames.split(",");
+    const imgUrls = imageUrls.split(",");
+    const product = {
+      productId: productId,
+      productName: productName,
+      altNames: altNames,
+      images: imgUrls,
+      price: price,
+      lastPrice: lastPrice,
+      stock: stock,
+      description: description,
+    };
+    const token = localStorage.getItem("token");
+    try {
+      await axios.post("http://localhost:5000/api/products", product, {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      });
+      toast.success("Product Add successfully");
+    } catch (err) {
+      toast.error("Failed to add product");
+    }
   }
 
   return (
@@ -108,7 +123,7 @@ export default function AddProductForm() {
               type="number"
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
               placeholder="Enter Last Price"
-              value={lasrPrice}
+              value={lastPrice}
               onChange={(e) => {
                 setLastPrice(e.target.value);
               }}
