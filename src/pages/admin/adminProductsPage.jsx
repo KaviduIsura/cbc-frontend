@@ -14,27 +14,41 @@ export default function AdminProductsPage() {
   }, []);
 
   return (
-    <div className="p-8 min-h-screen relative">
+    <div className="p-8 min-h-screen bg-gray-100 relative">
       <Link
         to={"/admin/products/addProduct"}
-        className="absolute right-[25px] bottom-[25px] text-[25px] bg-white p-4 rounded-xl text-blue-700 border-blue-700 border-[2px] hover:bg-blue-300"
+        className="absolute right-[25px] bottom-[25px] text-[25px] bg-white p-4 rounded-full text-blue-700 border-blue-700 border-2 hover:bg-blue-100 shadow-lg"
       >
         <FaPlus />
       </Link>
-      <h1 className="text-2xl font-bold mb-6">Admin Product Page</h1>
-      <div className="overflow-x-auto">
-        <table className="min-w-full border-collapse border border-gray-200">
+      <h1 className="text-3xl font-bold mb-6 text-gray-800 text-center">
+        Admin Product Page
+      </h1>
+      <div className="overflow-x-auto bg-white shadow-lg rounded-lg">
+        <table className="w-full border-collapse border border-gray-300">
           <thead>
-            <tr className="bg-gray-100 text-left">
-              <th className="border border-gray-300 px-4 py-2">Product Id</th>
-              <th className="border border-gray-300 px-4 py-2">Product Name</th>
-              <th className="border border-gray-300 px-4 py-2">Price</th>
-              <th className="border border-gray-300 px-4 py-2">Last Price</th>
-              <th className="border border-gray-300 px-4 py-2 w-1/4">
+            <tr className="bg-blue-600 text-white">
+              <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
+                Product Id
+              </th>
+              <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
+                Product Name
+              </th>
+              <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
+                Price
+              </th>
+              <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
+                Last Price
+              </th>
+              <th className="border border-gray-300 px-4 py-3 text-sm font-semibold w-1/5">
                 Description
               </th>
-              <th className="border border-gray-300 px-4 py-2">Stock</th>
-              <th className="border border-gray-300 px-4 py-2">Actions</th>
+              <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
+                Stock
+              </th>
+              <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -42,28 +56,30 @@ export default function AdminProductsPage() {
               <tr
                 key={index}
                 className={`${
-                  index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                } hover:bg-gray-100`}
+                  index % 2 === 0 ? "bg-gray-100" : "bg-white"
+                } hover:bg-gray-200 transition-colors`}
               >
-                <td className="border border-gray-300 px-4 py-2">
+                <td className="border border-gray-300 px-4 py-3 text-sm text-gray-700">
                   {product.productId}
                 </td>
-                <td className="border border-gray-300 px-4 py-2">
+                <td className="border border-gray-300 px-4 py-3 text-sm text-gray-700">
                   {product.productName}
                 </td>
-                <td className="border border-gray-300 px-4 py-2">
+                <td className="border border-gray-300 px-4 py-3 text-sm text-gray-700">
                   ${product.price.toFixed(2)}
                 </td>
-                <td className="border border-gray-300 px-4 py-2">
+                <td className="border border-gray-300 px-4 py-3 text-sm text-gray-700">
                   ${product.lastPrice.toFixed(2)}
                 </td>
-                <td className="border border-gray-300 px-4 py-2 w-1/4 truncate">
-                  {product.description}
+                <td className="border border-gray-300 px-4 py-3 text-sm text-gray-700 truncate w-1/5">
+                  {product.description.length > 50
+                    ? `${product.description.slice(0, 50)}...`
+                    : product.description}
                 </td>
-                <td className="border border-gray-300 px-4 py-2">
+                <td className="border border-gray-300 px-4 py-3 text-sm text-gray-700">
                   {product.stock}
                 </td>
-                <td className="border border-gray-300 px-4 py-2 flex gap-2">
+                <td className="border border-gray-300 px-4 py-3 flex gap-4 justify-center items-center">
                   <button className="text-red-500 hover:text-red-700">
                     <FaTrash />
                   </button>
