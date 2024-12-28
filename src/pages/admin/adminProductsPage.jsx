@@ -1,17 +1,22 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { FaPencilAlt, FaTrash, FaPlus } from "react-icons/fa";
 import { Link } from "react-router-dom";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState([]);
+  const [productsLoaded, setProductLoaded] = useState(false);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/products").then((res) => {
-      console.log(res.data);
-      setProducts(res.data.list);
-    });
-  }, []);
+    if (!productsLoaded) {
+      axios.get("http://localhost:5000/api/products").then((res) => {
+        console.log(res.data);
+        setProducts(res.data.list);
+        setProductLoaded(true);
+      });
+    }
+  }, [productsLoaded]);
 
   return (
     <div className="p-8 min-h-screen bg-gray-100 relative">
@@ -80,7 +85,26 @@ export default function AdminProductsPage() {
                   {product.stock}
                 </td>
                 <td className="border border-gray-300 px-4 py-3 flex gap-4 justify-center items-center">
-                  <button className="text-red-500 hover:text-red-700">
+                  <button
+                    className="text-red-500 hover:text-red-700"
+                    onClick={() => {
+                      const token = localStorage.getItem("token");
+                      axios
+                        .delete(
+                          `http://localhost:5000/api/products/${product.productId}`,
+                          {
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                            },
+                          }
+                        )
+                        .then((res) => {
+                          console.log(res.data);
+                          toast.success("Product deleted successfully");
+                          setProductLoaded(false);
+                        });
+                    }}
+                  >
                     <FaTrash />
                   </button>
                   <button className="text-blue-900 hover:text-blue-900">
