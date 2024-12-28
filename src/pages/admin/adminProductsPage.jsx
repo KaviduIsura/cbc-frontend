@@ -17,7 +17,7 @@ export default function AdminProductsPage() {
     <div className="p-8 min-h-screen bg-gray-100 relative">
       <Link
         to={"/admin/products/addProduct"}
-        className="absolute right-[25px] bottom-[25px] text-[25px] bg-white p-4 rounded-full text-blue-700 border-blue-700 border-2 hover:bg-blue-100 shadow-lg"
+        className="absolute right-[25px] bottom-[25px] text-[25px] bg-white p-4 rounded-full text-blue-900 border-blue-900 border-2 hover:bg-blue-100 shadow-lg"
       >
         <FaPlus />
       </Link>
@@ -27,7 +27,7 @@ export default function AdminProductsPage() {
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg">
         <table className="w-full border-collapse border border-gray-300">
           <thead>
-            <tr className="bg-blue-600 text-white">
+            <tr className="bg-blue-900 text-white">
               <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
                 Product Id
               </th>
@@ -83,7 +83,7 @@ export default function AdminProductsPage() {
                   <button className="text-red-500 hover:text-red-700">
                     <FaTrash />
                   </button>
-                  <button className="text-blue-500 hover:text-blue-700">
+                  <button className="text-blue-900 hover:text-blue-900">
                     <FaPencilAlt />
                   </button>
                 </td>
