@@ -1,14 +1,57 @@
+import axios from "axios";
+import { useState } from "react";
+import toast from "react-hot-toast";
+
 export default function LoginPage() {
-    return (
-       <div className="w-full h-screen bg-slate-400 flex items-center justify-center">
-        <div className="w-[500px] h-[500px] bg-slate-600 flex flex-col justify-center items-center ">
-            <img src="/logo.jpge.jpg" alt="" className="rounded-full w-[100px]"/>
-            <span>Email</span>
-            <input type="text" />
-            <span>Password</span>
-            <input type="password" />
-            <button className="bg-white">Login</button>
-        </div>
-       </div>
-    );
+  const [email, setEmail] = useState("Your email");
+  const [password, setPassword] = useState("");
+
+  function login() {
+    axios
+      .post("http://localhost:5000/api/users/login", {
+        email: email,
+        password: password,
+      })
+      .then((res) => {
+        if (res.data.user == null) {
+          toast.error(res.data.message);
+          return;
+        }
+        toast.success(res.data.message);
+        localStorage.setItem("token", res.data.token);
+        if ((res.data.user.type = "admin")) {
+          window.location.href = "/admin";
+        } else {
+          window.location.href = "/";
+        }
+      });
+  }
+  return (
+    <div className="w-full h-screen bg-slate-400 flex items-center justify-center">
+      <div className="w-[500px] h-[500px] bg-slate-600 flex flex-col justify-center items-center ">
+        <img src="/logo.jpge.jpg" alt="" className="rounded-full w-[100px]" />
+        <span>Email</span>
+        <input
+          type="text"
+          defaultValue={email}
+          onChange={(e) => {
+            //console.log(e.target.value);
+            setEmail(e.target.value);
+          }}
+        />
+        <span>Password</span>
+        <input
+          type="password"
+          defaultValue={password}
+          onChange={(e) => {
+            //console.log(e.target.value);
+            setPassword(e.target.value);
+          }}
+        />
+        <button onClick={login} className="bg-white">
+          Login
+        </button>
+      </div>
+    </div>
+  );
 }
