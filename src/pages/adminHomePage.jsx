@@ -3,6 +3,8 @@ import { GoGraph } from "react-icons/go"; // Icon for Dashboard
 import { FaBox, FaShoppingCart, FaUsers } from "react-icons/fa"; // Icons for Products, Orders, and Customers
 import AdminProductsPage from "./admin/adminProductsPage";
 import AddProductForm from "./admin/addProductForm";
+import AdminUsersPage from "./admin/adminUsersPage";
+import AddUserForm from "./admin/addUserForm";
 
 export default function AdminHomePage() {
   return (
@@ -50,7 +52,8 @@ export default function AdminHomePage() {
             path="/products/addProduct"
             element={<AddProductForm />}
           ></Route>
-          <Route path="/customers" element={<h2>Customers</h2>}></Route>
+          <Route path="/users/addUser" element={<AddUserForm />}></Route>
+          <Route path="/customers" element={<AdminUsersPage />}></Route>
           <Route
             path="/*"
             element={<h2>Welcome to the Admin Panel</h2>}
