@@ -2,12 +2,13 @@ import axios from "axios";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import uploadMediaToSupabase from "../../utils/mediaUpload";
 
 export default function AddProductForm() {
   const [productId, setProductId] = useState("");
   const [productName, setProductName] = useState("");
   const [alternativeNames, setAlternativeNames] = useState("");
-  const [imageUrls, setImageUrls] = useState("");
+  const [imageFiles, setImageFiles] = useState([]);
   const [price, setPrice] = useState("");
   const [lastPrice, setLastPrice] = useState("");
   const [stock, setStock] = useState("");
@@ -17,7 +18,14 @@ export default function AddProductForm() {
 
   async function handleSubmit() {
     const altNames = alternativeNames.split(",");
-    const imgUrls = imageUrls.split(",");
+
+    const promisesArray = [];
+    for (let i = 0; i < imageFiles.length; i++) {
+      promisesArray[i] = uploadMediaToSupabase(imageFiles[i]);
+    }
+    const imgUrls = await Promise.all(promisesArray);
+    console.log(imgUrls);
+
     const product = {
       productId: productId,
       productName: productName,
@@ -38,7 +46,7 @@ export default function AddProductForm() {
       navigate("/admin/products");
       toast.success("Product Add successfully");
     } catch (error) {
-      toast.error("Failed to add product");
+      toast.error("Failed to add product" + error);
     }
   }
 
@@ -96,13 +104,13 @@ export default function AddProductForm() {
               Image URLs
             </label>
             <input
-              type="text"
+              type="file"
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
               placeholder="Enter Image URLs"
-              value={imageUrls}
               onChange={(e) => {
-                setImageUrls(e.target.value);
+                setImageFiles(e.target.files);
               }}
+              multiple
             />
           </div>
           <div>
