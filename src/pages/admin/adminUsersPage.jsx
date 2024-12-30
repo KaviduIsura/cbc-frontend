@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { FaPencilAlt, FaTrash, FaPlus } from "react-icons/fa";
+import { FaToggleOff, FaToggleOn, FaPlus } from "react-icons/fa";
 import { Link } from "react-router-dom";
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
@@ -28,7 +28,7 @@ export default function AdminUsersPage() {
           <thead>
             <tr className="bg-blue-900 text-white">
               <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
-                Email
+                User Email
               </th>
               <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
                 First Name
@@ -37,16 +37,16 @@ export default function AdminUsersPage() {
                 Last Name
               </th>
               <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
-                Type
+                User Role
               </th>
               <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
-                Profile Pic
+                Profile Picture
               </th>
               <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
-                Is Blocked
+                Block Status
               </th>
               <th className="border border-gray-300 px-4 py-3 text-sm font-semibold">
-                Actions
+                Manage User
               </th>
             </tr>
           </thead>
@@ -80,12 +80,13 @@ export default function AdminUsersPage() {
                 <td className="border border-gray-300 px-4 py-3 text-sm text-gray-700">
                   {user.isBlocked ? "Yes" : "No"}
                 </td>
-                <td className="border border-gray-300 px-4 py-6 flex gap-5 justify-center items-center">
-                  <button className="text-blue-900 hover:text-blue-700">
-                    <FaPencilAlt />
-                  </button>
-                  <button className="text-red-500 hover:text-red-700">
-                    <FaTrash />
+                <td className="border border-gray-300 px-4 py-6 flex justify-center items-center">
+                  <button
+                    className={`text-lg ${
+                      user.isBlocked ? "text-red-500" : "text-green-500"
+                    }`}
+                  >
+                    {user.isBlocked ? <FaToggleOff /> : <FaToggleOn />}
                   </button>
                 </td>
               </tr>
