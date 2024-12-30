@@ -12,7 +12,7 @@ export default function uploadMediaToSupabase(file) {
 
     const supabase = createClient(url, key);
     const timeStamp = new Date().getTime();
-    fileName = timeStamp + "." + extension;
+    fileName = timeStamp + file.name + +"." + extension;
 
     supabase.storage
       .from("images")
