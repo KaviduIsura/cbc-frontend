@@ -17,7 +17,7 @@ export default function AdminUsersPage() {
   return (
     <div className="p-8 min-h-screen bg-gray-100 relative">
       <h1 className="text-3xl font-bold mb-6 text-gray-800 text-center">
-        Admin User Page
+        All Customers Page
       </h1>
       {userLoaded ? (
         <div className="overflow-x-auto bg-white shadow-lg rounded-lg">

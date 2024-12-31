@@ -24,7 +24,7 @@ export default function AdminAdminstratorPage() {
         <FaPlus />
       </Link>
       <h1 className="text-3xl font-bold mb-6 text-gray-800 text-center">
-        Admin User Page
+        All Administrator Page
       </h1>
       {userLoaded ? (
         <div className="overflow-x-auto bg-white shadow-lg rounded-lg">
