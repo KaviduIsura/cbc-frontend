@@ -35,7 +35,7 @@ export default function AdminHomePage() {
         </Link>
         <Link
           className="flex flex-row items-center text-gray-100 mb-6 w-[90%] p-3 rounded hover:bg-blue-700 transition duration-200"
-          to="/admin/customers"
+          to="/admin/users"
         >
           <FaUsers className="mr-3 text-xl" />
           Customers
@@ -53,7 +53,7 @@ export default function AdminHomePage() {
             element={<AddProductForm />}
           ></Route>
           <Route path="/users/addUser" element={<AddUserForm />}></Route>
-          <Route path="/customers" element={<AdminUsersPage />}></Route>
+          <Route path="/users" element={<AdminUsersPage />}></Route>
           <Route
             path="/*"
             element={<h2>Welcome to the Admin Panel</h2>}
