@@ -1,10 +1,11 @@
 import { Link, Route, Routes } from "react-router-dom";
 import { GoGraph } from "react-icons/go"; // Icon for Dashboard
-import { FaBox, FaShoppingCart, FaUsers } from "react-icons/fa"; // Icons for Products, Orders, and Customers
+import { FaBox, FaShoppingCart, FaUsers, FaUserShield } from "react-icons/fa"; // Icons for Products, Orders, and Customers
 import AdminProductsPage from "./admin/adminProductsPage";
 import AddProductForm from "./admin/addProductForm";
 import AdminUsersPage from "./admin/adminUsersPage";
-import AddUserForm from "./admin/addUserForm";
+import AddUserForm from "./admin/addAdminForm";
+import AdminAdminstratorPage from "./admin/adminAdminsitratorPage";
 
 export default function AdminHomePage() {
   return (
@@ -35,10 +36,17 @@ export default function AdminHomePage() {
         </Link>
         <Link
           className="flex flex-row items-center text-gray-100 mb-6 w-[90%] p-3 rounded hover:bg-blue-700 transition duration-200"
-          to="/admin/users"
+          to="/admin/customers"
         >
           <FaUsers className="mr-3 text-xl" />
           Customers
+        </Link>
+        <Link
+          className="flex flex-row items-center text-gray-100 mb-6 w-[90%] p-3 rounded hover:bg-blue-700 transition duration-200"
+          to="/admin/admins"
+        >
+          <FaUserShield className="mr-3 text-xl" />
+          Administrator
         </Link>
       </div>
 
@@ -52,8 +60,9 @@ export default function AdminHomePage() {
             path="/products/addProduct"
             element={<AddProductForm />}
           ></Route>
-          <Route path="/users/addUser" element={<AddUserForm />}></Route>
-          <Route path="/users" element={<AdminUsersPage />}></Route>
+          <Route path="/admin/addAdmin" element={<AddUserForm />}></Route>
+          <Route path="/customers" element={<AdminUsersPage />}></Route>
+          <Route path="/admins" element={<AdminAdminstratorPage />}></Route>
           <Route
             path="/*"
             element={<h2>Welcome to the Admin Panel</h2>}
