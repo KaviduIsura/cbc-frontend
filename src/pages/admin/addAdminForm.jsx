@@ -2,27 +2,45 @@ import axios from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import uploadMediaToSupabase from "../../utils/mediaUpload";
 
 export default function AddUserForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [image, setImage] = useState("");
+  const [imageFile, setImageFile] = useState(null);
   const [password, setPassword] = useState("");
   const [type] = useState("admin"); // Default role is "admin"
 
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
-    e.preventDefault(); // Prevent form submission reload
+    e.preventDefault(); // Prevent default form submission
+
+    let imgUrl = "";
+    if (imageFile) {
+      try {
+        imgUrl = await uploadMediaToSupabase(imageFile); // Upload the image
+      } catch (uploadError) {
+        console.error("Failed to upload image:", uploadError.message);
+        toast.error("Image upload failed.");
+        return; // Stop further execution if image upload fails
+      }
+    } else {
+      console.error("No image file provided.");
+      toast.error("Please select an image file.");
+      return; // Stop further execution if no image is provided
+    }
+
     const user = {
       firstName: firstName,
       lastName: lastName,
       email: email,
-      profilePic: image,
+      profilePic: imgUrl, // Use the uploaded image URL
       password: password,
-      type: type, // Role is always "admin"
+      type: type,
     };
+
     const token = localStorage.getItem("token");
     try {
       await axios.post("http://localhost:5000/api/users", user, {
@@ -30,10 +48,11 @@ export default function AddUserForm() {
           Authorization: "Bearer " + token,
         },
       });
-      navigate("/admin/admins");
-      toast.success("User Added Successfully");
+      navigate("/admin/admins"); // Redirect to admin list page
+      toast.success("User added successfully!");
     } catch (error) {
-      toast.error("Failed To add User: " + error.message);
+      console.error("Failed to add user:", error.message);
+      toast.error("Failed to add user: " + error.message);
     }
   }
 
@@ -50,9 +69,7 @@ export default function AddUserForm() {
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             placeholder="Enter first name"
             value={firstName}
-            onChange={(e) => {
-              setFirstName(e.target.value);
-            }}
+            onChange={(e) => setFirstName(e.target.value)}
           />
         </div>
         <div className="mb-4">
@@ -64,9 +81,7 @@ export default function AddUserForm() {
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             placeholder="Enter last name"
             value={lastName}
-            onChange={(e) => {
-              setLastName(e.target.value);
-            }}
+            onChange={(e) => setLastName(e.target.value)}
           />
         </div>
         <div className="mb-4">
@@ -78,23 +93,18 @@ export default function AddUserForm() {
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             placeholder="Enter user email"
             value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-            }}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div className="mb-4">
           <label className="block text-gray-700 font-medium mb-2">
-            Profile Picture URL
+            Profile Picture
           </label>
           <input
-            type="text"
+            type="file"
+            accept="image/*" // Restrict to image files only
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-            placeholder="Enter profile picture URL"
-            value={image}
-            onChange={(e) => {
-              setImage(e.target.value);
-            }}
+            onChange={(e) => setImageFile(e.target.files[0])} // Handle single file selection
           />
         </div>
         <div className="mb-4">
@@ -106,9 +116,7 @@ export default function AddUserForm() {
             className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             placeholder="Enter password"
             value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-            }}
+            onChange={(e) => setPassword(e.target.value)}
           />
         </div>
         <button
