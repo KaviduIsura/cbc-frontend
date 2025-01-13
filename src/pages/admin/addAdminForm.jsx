@@ -43,7 +43,7 @@ export default function AddUserForm() {
 
     const token = localStorage.getItem("token");
     try {
-      await axios.post("http://localhost:5000/api/users", user, {
+      await axios.post(import.meta.env.VITE_BACKEND_URL + "/api/users", user, {
         headers: {
           Authorization: "Bearer " + token,
         },

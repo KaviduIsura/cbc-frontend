@@ -38,11 +38,15 @@ export default function AddProductForm() {
     };
     const token = localStorage.getItem("token");
     try {
-      await axios.post("http://localhost:5000/api/products", product, {
-        headers: {
-          Authorization: "Bearer " + token,
-        },
-      });
+      await axios.post(
+        import.meta.env.VITE_BACKEND_URL + "/api/products",
+        product,
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        }
+      );
       navigate("/admin/products");
       toast.success("Product Add successfully");
     } catch (error) {

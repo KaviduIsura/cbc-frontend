@@ -8,7 +8,7 @@ export default function AdminAdminstratorPage() {
   const [userLoaded, setUserLoaded] = useState(false);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/users").then((res) => {
+    axios.get(import.meta.env.VITE_BACKEND_URL + "/api/users").then((res) => {
       console.log(res.data);
       setUsers(res.data.list);
       setUserLoaded(true);
