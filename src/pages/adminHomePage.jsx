@@ -6,6 +6,8 @@ import AddProductForm from "./admin/addProductForm";
 import AdminUsersPage from "./admin/adminUsersPage";
 import AddUserForm from "./admin/addAdminForm";
 import AdminAdminstratorPage from "./admin/adminAdminsitratorPage";
+import AdminReviewPage from "./admin/adminReviewPage";
+import { MdOutlineReviews } from "react-icons/md";
 
 export default function AdminHomePage() {
   return (
@@ -48,6 +50,13 @@ export default function AdminHomePage() {
           <FaUserShield className="mr-3 text-xl" />
           Administrator
         </Link>
+        <Link
+          className="flex flex-row items-center text-gray-100 mb-6 w-[90%] p-3 rounded hover:bg-blue-700 transition duration-200"
+          to="/admin/reviews"
+        >
+          <MdOutlineReviews className="mr-3 text-xl" />
+          Reviews
+        </Link>
       </div>
 
       {/* Main Content Area */}
@@ -56,6 +65,7 @@ export default function AdminHomePage() {
           <Route path="/dashboard" element={<h2>Dashboard</h2>}></Route>
           <Route path="/products" element={<AdminProductsPage />}></Route>
           <Route path="/orders" element={<h2>Orders</h2>}></Route>
+          <Route path="/reviews" element={<AdminReviewPage />}></Route>
           <Route
             path="/products/addProduct"
             element={<AddProductForm />}
