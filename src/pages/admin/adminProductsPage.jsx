@@ -10,11 +10,13 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     if (!productsLoaded) {
-      axios.get("http://localhost:5000/api/products").then((res) => {
-        console.log(res.data);
-        setProducts(res.data.list);
-        setProductLoaded(true);
-      });
+      axios
+        .get(import.meta.env.VITE_BACKEND_URL + "/api/products")
+        .then((res) => {
+          console.log(res.data);
+          setProducts(res.data.list);
+          setProductLoaded(true);
+        });
     }
   }, [productsLoaded]);
 
@@ -26,7 +28,7 @@ export default function AdminProductsPage() {
       >
         <FaPlus />
       </Link>
-      <h1 className="text-3xl font-bold mb-6 text-gray-800 text-center">
+      <h1 className="text-3xl font-bold mb-6 text-gray-800 ">
         Admin Product Page
       </h1>
       {productsLoaded ? (
