@@ -8,6 +8,7 @@ import AddUserForm from "./admin/addAdminForm";
 import AdminAdminstratorPage from "./admin/adminAdminsitratorPage";
 import AdminReviewPage from "./admin/adminReviewPage";
 import { MdOutlineReviews } from "react-icons/md";
+import EditProductForm from "./admin/editProductForm";
 
 export default function AdminHomePage() {
   return (
@@ -69,6 +70,10 @@ export default function AdminHomePage() {
           <Route
             path="/products/addProduct"
             element={<AddProductForm />}
+          ></Route>
+          <Route
+            path="/products/editProduct"
+            element={<EditProductForm />}
           ></Route>
           <Route path="/admin/addAdmin" element={<AddUserForm />}></Route>
           <Route path="/customers" element={<AdminUsersPage />}></Route>

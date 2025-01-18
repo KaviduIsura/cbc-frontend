@@ -2,9 +2,10 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { FaPencilAlt, FaTrash, FaPlus } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function AdminProductsPage() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [productsLoaded, setProductLoaded] = useState(false);
 
@@ -110,7 +111,14 @@ export default function AdminProductsPage() {
                     >
                       <FaTrash />
                     </button>
-                    <button className="text-blue-900 hover:text-blue-900">
+                    <button
+                      className="text-blue-900 hover:text-blue-900"
+                      onClick={() => {
+                        navigate("/admin/products/editProduct", {
+                          state: { product: product },
+                        });
+                      }}
+                    >
                       <FaPencilAlt />
                     </button>
                   </td>

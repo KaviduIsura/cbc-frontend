@@ -12,7 +12,7 @@ function App() {
       <BrowserRouter>
         <Toaster />
         <Routes path="/*">
-          <Route path="/" element={<HomePage />}></Route>
+          <Route path="/*" element={<HomePage />}></Route>
           <Route path="/login" element={<LoginPage />}></Route>
           <Route path="/signup" element={<SigninPage />}></Route>
           <Route path="/admin/*" element={<AdminHomePage />}></Route>
@@ -24,3 +24,4 @@ function App() {
 }
 
 export default App;
+//VITE_BACKEND_URL =https://cbc-backend-ps3j.onrender.com
