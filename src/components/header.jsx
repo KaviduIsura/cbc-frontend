@@ -16,7 +16,7 @@ export default function Header() {
           Home
         </Link>
         <Link
-          to={"/"}
+          to={"/products"}
           className="text-white font-bold text-xl hover:border-b border-b-white "
         >
           Products
