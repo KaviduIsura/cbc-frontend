@@ -2,6 +2,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import ProductNotFound from "./productNotFound";
+import ImageSlider from "../../components/imageSlider";
 
 export default function ProductOverview() {
   const params = useParams();
@@ -36,11 +37,7 @@ export default function ProductOverview() {
       {status == "found" && (
         <div className="w-full h-full flex items-center justify-center">
           <div className="w-[35%] h-full">
-            <img
-              src={product.images[0]}
-              className="w-full h-[300px] object-cover rounded-lg"
-              alt=""
-            />
+             <ImageSlider images= {product.images}/>
           </div>
           <div className="w-[65%] h-full p-4">
             <h1 className="text-3xl font-bold text-gray-800">
