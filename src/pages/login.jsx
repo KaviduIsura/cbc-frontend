@@ -3,7 +3,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("Your email");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   function login() {
@@ -17,9 +17,9 @@ export default function LoginPage() {
           toast.error(res.data.message);
           return;
         }
-        toast.success(res.data.message);
+        toast.success("Login success");
         localStorage.setItem("token", res.data.token);
-        if ((res.data.user.type = "admin")) {
+        if ((res.data.user.type === "admin")) {
           window.location.href = "/admin";
         } else {
           window.location.href = "/";
