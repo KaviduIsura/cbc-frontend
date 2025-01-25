@@ -3,6 +3,7 @@ import Header from "../components/header";
 import LoginPage from "./login";
 import ProductOverview from "./home/productOverview";
 import ProductPage from "./home/product";
+import Cart from "./home/cart";
 
 export default function HomePage() {
   return (
@@ -12,6 +13,7 @@ export default function HomePage() {
         <Routes path="/*">
           <Route path="/" element={<h1>Home Page</h1>}></Route>
           <Route path="/products" element={<ProductPage />}></Route>
+          <Route path="/cart" element={<Cart />}></Route>
           <Route path="/login" element={<LoginPage />}></Route>
           <Route path="/productInfo/:id" element={<ProductOverview />}></Route>
         </Routes>

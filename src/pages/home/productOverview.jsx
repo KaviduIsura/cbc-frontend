@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import ProductNotFound from "./productNotFound";
 import ImageSlider from "../../components/imageSlider";
+import { addToCart } from "../../utils/cartFunction";
+import toast from "react-hot-toast";
 
 export default function ProductOverview() {
   const params = useParams();
@@ -26,6 +28,11 @@ export default function ProductOverview() {
         }
       });
   }, []);
+
+  function onAddToCartClick(){
+    addToCart(product.productId,1)
+    toast.success(product.productId+"Added to cart")
+  }
   return (
     <div className="w-full h-[calc(100vh-100px)]">
       {status == "loading" && (
@@ -57,6 +64,7 @@ export default function ProductOverview() {
             <p className="text-xl text-gray-600 line-clamp-3">
               {product.description}
             </p>
+            <button onClick={onAddToCartClick} className="bg-accent text-white p-2 rounded-lg">Add to cart</button>
           </div>
         </div>
       )}
