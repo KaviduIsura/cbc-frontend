@@ -9,7 +9,7 @@ export default function LoginPage() {
   function login() {
     axios
       .post(import.meta.env.VITE_BACKEND_URL + "/api/users/login", {
-        email: email,✅
+        email: email,
         password: password,
       })
       .then((res) => {
