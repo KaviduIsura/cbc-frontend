@@ -33,6 +33,12 @@ export default function Header() {
         >
           Contact Us
         </Link>
+        <Link
+          to={"/cart"}
+          className="text-white font-bold text-xl hover:border-b border-b-white "
+        >
+          Cart
+        </Link>
       </div>
     </header>
   );
