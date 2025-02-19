@@ -1,22 +1,21 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import AboutUsImg from "../../assets/images/aboutus_3.png";
-import MissionImg from "../../assets/images/mission.png";
 
-const AboutUs = () => {
+
+export default function AboutUs (){
   const navigate = useNavigate();
 
   return (
-    <div className="mt-12 px-[20px] md:px-[40px] lg:px-[100px]">
+    <div className="mt-12 px-[20px] md:px-[40px] lg:px-[100px] bg-slate-400">
       <div className="flex flex-col justify-between">
         <img
-          src={AboutUsImg}
+          src="Aboutus.jpg"
           alt="About Us"
           className="rounded-[20px] object-cover h-[300px] sm:h-[400px] lg:h-[520px]"
         />
 
-        <div className="flex border items-center lg:items-start flex-col w-full gap-6 py-10 sm:gap-8 lg:gap-10">
-          <h1 className="font-nonito_sans font-bold text-3xl sm:text-4xl lg:text-level-1 leading-tight sm:leading-[1.2] lg:leading-[56px] text-primary tracking-[0.042em] text-center lg:text-left">
+        <div className="flex border items-center lg:items-start flex-col w-full gap-6 py-10 sm:gap-8 lg:gap-10 mt-6">
+          <h1 className="font-nonito_sans font-bold text-3xl sm:text-4xl lg:text-level-1 leading-tight sm:leading-[1.2] lg:leading-[56px] text-[#f0c8e4] tracking-[0.042em] text-center lg:text-left">
             Discover Reliable Services, Anytime, Anywhere
           </h1>
 
@@ -32,7 +31,7 @@ const AboutUs = () => {
 
           <button
             onClick={() => navigate("/service-pro")}
-            className="bg-primary flex items-center justify-center text-white font-inter font-semibold text-[16px] leading-[17px] w-full sm:w-[214px] h-[49px] rounded-xl hover:bg-primary/90 transition-colors"
+            className="bg-[#f0c8e4] flex items-center justify-center text-white font-inter font-semibold text-[16px] leading-[17px] w-full sm:w-[214px] h-[49px] rounded-xl hover:bg-[#f0c8e4]/90 transition-colors"
           >
             Find a Service-Pro
           </button>
@@ -55,7 +54,7 @@ const AboutUs = () => {
 
           <div className="relative lg:absolute right-0 w-full lg:w-[791px] h-[300px] sm:h-[400px] lg:h-[506px] ">
             <img
-              src={MissionImg}
+              src="logo.png"
               alt="Service illustration"
               className="w-full h-full object-cover rounded-[20px]"
             />
@@ -66,4 +65,4 @@ const AboutUs = () => {
   );
 };
 
-export default AboutUs;
+
