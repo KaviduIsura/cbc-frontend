@@ -4,6 +4,8 @@ import LoginPage from "./login";
 import ProductOverview from "./home/productOverview";
 import ProductPage from "./home/product";
 import Cart from "./home/cart";
+import Landing from "./home/landing";
+import Footer from "../components/footer";
 
 export default function HomePage() {
   return (
@@ -11,13 +13,14 @@ export default function HomePage() {
       <Header />
       <div className="w-full h-[calc(100vh-100px)]">
         <Routes path="/*">
-          <Route path="/" element={<h1>Home Page</h1>}></Route>
+          <Route path="/" element={<Landing />}></Route>
           <Route path="/products" element={<ProductPage />}></Route>
           <Route path="/cart" element={<Cart />}></Route>
           <Route path="/login" element={<LoginPage />}></Route>
           <Route path="/productInfo/:id" element={<ProductOverview />}></Route>
         </Routes>
       </div>
+      <Footer />
     </div>
   );
 }
