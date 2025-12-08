@@ -1,27 +1,66 @@
-import {Link} from "react-router-dom"
+import { motion } from 'framer-motion';
+import { Heart, Star } from 'lucide-react';
 
-export default function ProductCard(props){
-    console.log(props)
-    return(
-      <Link to={`/productInfo/${props.product.productId}`}>
-        <div className="w-[300px] h-[500px]  m-[80px] rounded-xl shadow-lg shadow-gray-500 hover:shadow-primary hover:border-[3px] overflow-hidden flex flex-col">
+const ProductCard = ({ product, index }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="relative group"
+    >
+      {/* Badges */}
+      <div className="absolute z-10 flex gap-2 top-4 left-4">
+        {product.isNew && (
+          <span className="px-3 py-1 text-xs font-light tracking-wide bg-white">NEW</span>
+        )}
+        {product.isBestSeller && (
+          <span className="px-3 py-1 text-xs font-light text-white bg-black">BESTSELLER</span>
+        )}
+      </div>
+
+      <button className="absolute z-10 transition-opacity opacity-0 top-4 right-4 group-hover:opacity-100">
+        <Heart className="w-5 h-5" />
+      </button>
+
+      {/* Image */}
+      <div className="mb-4 overflow-hidden aspect-square bg-gray-50">
+        <motion.img
+          whileHover={{ scale: 1.05 }}
+          transition={{ duration: 0.4 }}
+          src={product.image}
+          alt={product.name}
+          className="object-cover w-full h-full"
+        />
+      </div>
+
+      {/* Content */}
+      <div className="space-y-2">
+        <p className="text-xs font-light tracking-wide text-gray-500">{product.category}</p>
+        <h3 className="text-lg font-light">{product.name}</h3>
         
-            <img src={props.product.images[0]} alt={props.product.productName} className="w-full h-[65%] object-cover"/>
-            <div className="max-h-[35%] h-[35%] p-4 flex flex-col justify-center">
-            <h1 className="text-3xl font-bold text-center text-accent">{props.product.productName}</h1>
-            <h2 className="text-lg text-center text-gray-500 ">{props.product.productId}</h2>
-           <p className="text-lg text-left font-semibold text-gray-500 line-through">LKR {props.product.lastPrice.toFixed(2)}</p>
-           {
-            (props.product.lastPrice<props.product.price)&&
-            <p className="text-lg text-left font-semibold">LKR {props.product.price.toFixed(2)}</p>
-           }
-           
-           
-            </div>
-           
-        
+        <div className="flex items-center gap-2">
+          <div className="flex items-center">
+            <Star className="w-4 h-4 text-yellow-400 fill-current" />
+            <span className="ml-1 text-sm">{product.rating}</span>
+          </div>
+          <span className="text-gray-300">•</span>
+          <span className="text-sm font-light">240 reviews</span>
         </div>
 
-      </Link>
-    )
-}
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-light">{product.price}</span>
+          {product.originalPrice && (
+            <span className="text-sm text-gray-400 line-through">{product.originalPrice}</span>
+          )}
+        </div>
+
+        <button className="w-full py-3 mt-4 font-light tracking-wider text-black transition-all border border-black hover:bg-black hover:text-white">
+          Add to Ritual
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+export default ProductCard;

@@ -1,338 +1,323 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
-import { Menu, X, ShoppingBag, Heart, Search, User, ChevronDown, Sparkles } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Search, ShoppingBag, Heart, Menu, X, ChevronDown, User, LogOut, Settings, Package } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-export default function Header() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(false);
+const Navbar = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
-  const timeoutRef = useRef(null);
+  const [userProfileDropdown, setUserProfileDropdown] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Change to true to test logged in state
+  const [user, setUser] = useState(null);
 
-  // Handle scroll effect for subtle header transformation
+  // Simulate login/logout (replace with actual auth logic)
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    // Check if user is logged in from localStorage or context
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setIsLoggedIn(true);
+      setUser(JSON.parse(storedUser));
+    }
   }, []);
 
-  // Wellness-focused navigation with dropdowns
-  const wellnessCategories = [
-    {
-      name: "Rituals",
-      path: "/rituals",
-      subItems: [
-        { name: "Morning Calming", path: "/rituals/morning" },
-        { name: "Evening Renewal", path: "/rituals/evening" },
-        { name: "Weekly Self-Care", path: "/rituals/weekly" },
-        { name: "Cultural Ceremonies", path: "/rituals/ceremonies" }
+  const handleLogin = () => {
+    // Simulate login
+    const mockUser = { name: 'Alex Morgan', email: 'alex@example.com' };
+    setUser(mockUser);
+    setIsLoggedIn(true);
+    localStorage.setItem('user', JSON.stringify(mockUser));
+    setIsMenuOpen(false); // Close mobile menu
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUser(null);
+    setUserProfileDropdown(false);
+    localStorage.removeItem('user');
+    setIsMenuOpen(false); // Close mobile menu
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Navigation items with dropdown support
+  const navItems = [
+    { 
+      label: 'Shop', 
+      hasDropdown: true,
+      dropdownItems: [
+        { label: 'All Products', href: '/shop/all' },
+        { label: 'Perfumes', href: '/shop/perfumes' },
+        { label: 'Skincare', href: '/shop/skincare' },
+        { label: 'Makeup', href: '/shop/makeup' },
+        { label: 'Tools', href: '/shop/tools' },
       ]
     },
-    {
-      name: "Products",
-      path: "/products",
-      subItems: [
-        { name: "By Concern", path: "/products/concern" },
-        { name: "By Ingredient", path: "/products/ingredient" },
-        { name: "By Culture", path: "/products/culture" },
-        { name: "New Arrivals", path: "/products/new" }
+    { label: 'Our Story', href: '/story' },
+    { 
+      label: 'Ingredients', 
+      hasDropdown: true,
+      dropdownItems: [
+        { label: 'Oud & Attars', href: '/ingredients/oud' },
+        { label: 'Saffron & Gold', href: '/ingredients/saffron' },
+        { label: 'Argan & Rose', href: '/ingredients/argan' },
+        { label: 'Sandalwood', href: '/ingredients/sandalwood' },
       ]
     },
-    { name: "Our Story", path: "/story" },
-    {
-      name: "Wellness",
-      path: "/wellness",
-      subItems: [
-        { name: "Guided Rituals", path: "/wellness/guides" },
-        { name: "Mindfulness Blog", path: "/wellness/blog" },
-        { name: "Community Stories", path: "/wellness/community" },
-        { name: "Practitioner Tips", path: "/wellness/tips" }
-      ]
-    },
-    { name: "Impact", path: "/impact" }
+    { label: 'Rituals', href: '/rituals' },
+    { label: 'Journal', href: '/journal' },
   ];
 
-  const utilityLinks = [
-    { icon: <Search className="w-5 h-5" />, path: "/search", label: "Search" },
-    { icon: <Heart className="w-5 h-5" />, path: "/wishlist", label: "Wishlist" },
-    { icon: <User className="w-5 h-5" />, path: "/account", label: "Account" },
-    { icon: <ShoppingBag className="w-5 h-5" />, path: "/cart", label: "Cart", badge: 3 }
-  ];
-
-  const handleDropdownEnter = (index) => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setActiveDropdown(index);
+  const handleMouseEnter = (label) => {
+    if (navItems.find(item => item.label === label)?.hasDropdown) {
+      setActiveDropdown(label);
+    }
   };
 
-  const handleDropdownLeave = () => {
-    timeoutRef.current = setTimeout(() => {
-      setActiveDropdown(null);
-    }, 200);
-  };
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-    document.body.style.overflow = !isOpen ? "hidden" : "unset";
-  };
-
-  const handleNavClick = (path) => {
-    setIsOpen(false);
-    document.body.style.overflow = "unset";
-    navigate(path);
+  const handleMouseLeave = () => {
+    setActiveDropdown(null);
   };
 
   return (
-    <>
-      {/* Header */}
-      <header 
-        className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
-          scrolled 
-            ? "bg-white/95 backdrop-blur-md shadow-lg py-3" 
-            : "bg-gradient-to-b from-sage-50/90 to-white/80 backdrop-blur-sm py-5"
-        }`}
-      >
-        <div className="container px-4 mx-auto sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            
-            {/* Logo with subtle animation */}
-            <Link 
-              to="/" 
-              className="flex items-center space-x-3 group"
-              onClick={() => handleNavClick("/")}
-            >
-              <div className="relative p-1 overflow-hidden transition-transform duration-500 border-2 rounded-full border-terracotta-200 group-hover:scale-105 group-hover:border-terracotta-300">
-                <img
-                  src="/logo.png"
-                  alt="Sage & Bloom Beauty"
-                  className="object-cover rounded-full h-14 w-14"
-                />
-                <div className="absolute inset-0 transition-opacity duration-500 opacity-0 bg-gradient-to-br from-white/10 to-transparent group-hover:opacity-100"></div>
-              </div>
-              <div className="hidden md:block">
-                <h1 className="font-serif text-2xl font-bold tracking-tight text-sage-800">Sage & Bloom</h1>
-                <p className="text-xs font-light tracking-wider text-terracotta-600">Inclusive Beauty Rituals</p>
-              </div>
-            </Link>
+    <nav 
+      className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white/80 backdrop-blur-sm'}`}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="container px-6 py-4 mx-auto">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="text-2xl font-light tracking-wider"
+          >
+            <a href="/" className="transition-colors hover:text-gray-600">
+              ELEVÉ
+            </a>
+          </motion.div>
 
-            {/* Desktop Navigation */}
-            <nav className="items-center hidden space-x-8 lg:flex">
-              {wellnessCategories.map((item, index) => (
-                <div 
-                  key={item.name}
-                  className="relative"
-                  onMouseEnter={() => handleDropdownEnter(index)}
-                  onMouseLeave={handleDropdownLeave}
-                >
-                  <Link
-                    to={item.path}
-                    className={`flex items-center space-x-1 font-medium transition-all duration-300 ${
-                      location.pathname.startsWith(item.path)
-                        ? "text-terracotta-600"
-                        : scrolled ? "text-sage-800 hover:text-terracotta-500" : "text-sage-700 hover:text-terracotta-500"
-                    }`}
-                  >
-                    <span className="relative">
-                      {item.name}
-                      {item.name === "Rituals" && (
-                        <Sparkles className="absolute w-3 h-3 -top-2 -right-3 text-amber-400 fill-amber-400" />
-                      )}
-                    </span>
-                    {item.subItems && (
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${
-                        activeDropdown === index ? "rotate-180" : ""
-                      }`} />
-                    )}
-                  </Link>
-
-                  {/* Dropdown Menu */}
-                  {item.subItems && activeDropdown === index && (
-                    <div 
-                      className="absolute left-0 w-56 mt-2 overflow-hidden border shadow-2xl top-full bg-white/95 backdrop-blur-md rounded-xl border-sage-100 animate-fadeIn"
-                      onMouseEnter={() => handleDropdownEnter(index)}
-                      onMouseLeave={handleDropdownLeave}
-                    >
-                      <div className="py-3">
-                        {item.subItems.map((subItem) => (
-                          <Link
-                            key={subItem.name}
-                            to={subItem.path}
-                            className="flex items-center px-4 py-3 transition-all duration-300 text-sage-700 hover:bg-sage-50/80 hover:text-terracotta-600 group"
-                            onClick={() => handleNavClick(subItem.path)}
-                          >
-                            <div className="w-2 h-2 mr-3 transition-all duration-500 rounded-full opacity-0 bg-terracotta-200 group-hover:opacity-100 group-hover:scale-125"></div>
-                            <span className="text-sm font-medium">{subItem.name}</span>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </nav>
-
-            {/* Right Side Icons */}
-            <div className="flex items-center space-x-6">
-              {/* Utility Icons */}
-              <div className="items-center hidden space-x-5 md:flex">
-                {utilityLinks.map((link) => (
-                  <Link
-                    key={link.label}
-                    to={link.path}
-                    className={`relative p-2 rounded-full transition-all duration-300 ${
-                      scrolled 
-                        ? "text-sage-700 hover:bg-sage-100/80 hover:text-terracotta-500" 
-                        : "text-sage-600 hover:bg-white/60 hover:text-terracotta-500"
-                    }`}
-                    aria-label={link.label}
-                  >
-                    {link.icon}
-                    {link.badge && (
-                      <span className="absolute flex items-center justify-center w-5 h-5 text-xs text-white rounded-full -top-1 -right-1 bg-terracotta-500 animate-pulse">
-                        {link.badge}
-                      </span>
-                    )}
-                  </Link>
-                ))}
-              </div>
-
-              {/* CTA Button */}
-              <button 
-                onClick={() => handleNavClick("/rituals")}
-                className="hidden md:block px-5 py-2.5 bg-gradient-to-r from-terracotta-500 to-terracotta-600 text-white font-medium rounded-full hover:from-terracotta-600 hover:to-terracotta-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform"
+          {/* Desktop Menu */}
+          <div className="items-center hidden space-x-8 md:flex">
+            {navItems.map((item) => (
+              <div 
+                key={item.label}
+                className="relative"
+                onMouseEnter={() => handleMouseEnter(item.label)}
               >
-                Find Your Ritual
-              </button>
-
-              {/* Mobile Menu Button */}
-              <button
-                className="p-2 rounded-full lg:hidden"
-                onClick={toggleMenu}
-                aria-label="Toggle menu"
-              >
-                <div className={`relative w-6 h-6 transition-transform duration-500 ${isOpen ? "rotate-180" : ""}`}>
-                  <div className={`absolute top-1/2 left-1/2 w-6 h-0.5 bg-sage-700 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${
-                    isOpen ? "rotate-45" : "-translate-y-2"
-                  }`}></div>
-                  <div className={`absolute top-1/2 left-1/2 w-6 h-0.5 bg-sage-700 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${
-                    isOpen ? "opacity-0" : "opacity-100"
-                  }`}></div>
-                  <div className={`absolute top-1/2 left-1/2 w-6 h-0.5 bg-sage-700 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 ${
-                    isOpen ? "-rotate-45" : "translate-y-2"
-                  }`}></div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile Menu Overlay */}
-      <div 
-        className={`fixed inset-0 bg-white z-40 lg:hidden transition-all duration-700 ease-in-out ${
-          isOpen 
-            ? "opacity-100 pointer-events-auto" 
-            : "opacity-0 pointer-events-none"
-        }`}
-        style={{ 
-          background: "radial-gradient(circle at 20% 50%, rgba(184, 206, 194, 0.1) 0%, rgba(255, 255, 255, 0.95) 70%)"
-        }}
-      >
-        <div className="flex flex-col h-full px-6 pt-24 pb-10 overflow-y-auto">
-          {/* Mobile Logo */}
-          <div className="flex justify-center mb-10">
-            <div className="text-center">
-              <img
-                src="/logo.png"
-                alt="Sage & Bloom Beauty"
-                className="object-cover w-20 h-20 mx-auto mb-4 rounded-full"
-              />
-              <h2 className="font-serif text-3xl font-bold text-sage-800">Sage & Bloom</h2>
-              <p className="mt-2 text-terracotta-600">Where Culture Meets Self-Care</p>
-            </div>
-          </div>
-
-          {/* Mobile Navigation Links */}
-          <div className="mb-10 space-y-1">
-            {wellnessCategories.map((item) => (
-              <div key={item.name} className="border-b border-sage-100 last:border-0">
-                <button
-                  onClick={() => handleNavClick(item.path)}
-                  className={`flex items-center justify-between w-full py-4 text-left ${
-                    location.pathname.startsWith(item.path)
-                      ? "text-terracotta-600"
-                      : "text-sage-800"
-                  }`}
+                <a 
+                  href={item.href || '#'}
+                  className="flex items-center gap-1 text-sm font-light tracking-wide transition-colors hover:text-gray-600"
                 >
-                  <span className="text-lg font-medium">{item.name}</span>
-                  {item.subItems && (
-                    <ChevronDown className="w-5 h-5 text-sage-500" />
+                  {item.label}
+                  {item.hasDropdown && (
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${activeDropdown === item.label ? 'rotate-180' : ''}`} />
                   )}
-                </button>
-                
-                {/* Mobile Submenu */}
-                {item.subItems && (
-                  <div className="pb-3 pl-4 space-y-2">
-                    {item.subItems.map((subItem) => (
-                      <Link
-                        key={subItem.name}
-                        to={subItem.path}
-                        className="block py-2 transition-colors text-sage-600 hover:text-terracotta-500"
-                        onClick={() => handleNavClick(subItem.path)}
+                </a>
+
+                {/* Dropdown Menu */}
+                {item.hasDropdown && activeDropdown === item.label && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute left-0 w-48 py-2 mt-2 bg-white border border-gray-100 shadow-lg top-full"
+                  >
+                    {item.dropdownItems.map((dropdownItem) => (
+                      <a
+                        key={dropdownItem.label}
+                        href={dropdownItem.href}
+                        className="block px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50"
                       >
-                        {subItem.name}
-                      </Link>
+                        {dropdownItem.label}
+                      </a>
                     ))}
-                  </div>
+                  </motion.div>
                 )}
               </div>
             ))}
           </div>
 
-          {/* Mobile CTA */}
-          <div className="mt-auto space-y-4">
-            <button
-              onClick={() => handleNavClick("/rituals")}
-              className="w-full py-3.5 bg-gradient-to-r from-terracotta-500 to-terracotta-600 text-white font-medium rounded-full text-lg hover:from-terracotta-600 hover:to-terracotta-700 transition-all duration-300 shadow-lg"
-            >
-              Begin Your Ritual Journey
+          {/* Icons & Actions */}
+          <div className="flex items-center space-x-6">
+            <button className="hidden transition-colors md:block hover:text-gray-600" aria-label="Search">
+              <Search className="w-5 h-5" />
+            </button>
+            <button className="relative transition-colors hover:text-gray-600" aria-label="Wishlist">
+              <Heart className="w-5 h-5" />
+              <span className="absolute w-2 h-2 bg-red-500 rounded-full -top-1 -right-1"></span>
+            </button>
+            <button className="relative transition-colors hover:text-gray-600" aria-label="Shopping cart">
+              <ShoppingBag className="w-5 h-5" />
+              <span className="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-black rounded-full -top-2 -right-2">
+                3
+              </span>
             </button>
             
-            <div className="flex justify-center pt-4 space-x-6">
-              {utilityLinks.map((link) => (
-                <Link
-                  key={link.label}
-                  to={link.path}
-                  className="p-3 transition-all duration-300 rounded-full bg-sage-50 text-sage-700 hover:bg-terracotta-50 hover:text-terracotta-600"
-                  onClick={() => handleNavClick(link.path)}
-                  aria-label={link.label}
+            {/* User Profile / Login Button */}
+            <div className="relative">
+              {isLoggedIn ? (
+                <div 
+                  className="relative"
+                  onMouseEnter={() => setUserProfileDropdown(true)}
+                  onMouseLeave={() => setUserProfileDropdown(false)}
                 >
-                  {link.icon}
-                </Link>
-              ))}
+                  <button 
+                    className="flex items-center gap-2 transition-colors hover:text-gray-600"
+                    aria-label="User profile"
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 text-sm text-white bg-black rounded-full">
+                      {user?.name?.charAt(0) || 'U'}
+                    </div>
+                    <span className="hidden text-sm font-light md:block">
+                      {user?.name?.split(' ')[0] || 'User'}
+                    </span>
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${userProfileDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* User Profile Dropdown */}
+                  <AnimatePresence>
+                    {userProfileDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute right-0 w-48 py-2 mt-2 bg-white border border-gray-100 shadow-lg top-full"
+                        onMouseEnter={() => setUserProfileDropdown(true)}
+                        onMouseLeave={() => setUserProfileDropdown(false)}
+                      >
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <p className="text-sm font-medium">{user?.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                        </div>
+                        <a href="/account" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
+                          <User className="w-4 h-4" />
+                          My Account
+                        </a>
+                        <a href="/orders" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
+                          <Package className="w-4 h-4" />
+                          My Orders
+                        </a>
+                        <a href="/settings" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
+                          <Settings className="w-4 h-4" />
+                          Settings
+                        </a>
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center w-full gap-2 px-4 py-2 text-sm font-light text-left text-red-500 transition-colors hover:bg-gray-50"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Logout
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <button
+                  onClick={handleLogin}
+                  className="hidden px-4 py-2 text-sm font-light text-black transition-all border border-black md:block hover:bg-black hover:text-white"
+                >
+                  Sign In
+                </button>
+              )}
             </div>
+            
+            <button 
+              className="transition-colors md:hidden hover:text-gray-600" 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Add these to your global CSS for animations */}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
-    </>
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="pt-4 mt-4 overflow-hidden border-t md:hidden"
+            >
+              <div className="flex flex-col space-y-1">
+                {navItems.map((item) => (
+                  <div key={item.label}>
+                    <a 
+                      href={item.href || '#'}
+                      className="block py-3 text-sm font-light transition-colors border-b hover:text-gray-600 border-gray-50"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {item.label}
+                    </a>
+                    {item.hasDropdown && (
+                      <div className="pl-4 space-y-1">
+                        {item.dropdownItems.map((dropdownItem) => (
+                          <a
+                            key={dropdownItem.label}
+                            href={dropdownItem.href}
+                            className="block py-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
+                            onClick={() => setIsMenuOpen(false)}
+                          >
+                            {dropdownItem.label}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {/* Mobile-only links with auth */}
+                <div className="pt-4 space-y-3">
+                  {isLoggedIn ? (
+                    <>
+                      <div className="px-2 py-3 border-b border-gray-100">
+                        <p className="text-sm font-medium">{user?.name}</p>
+                        <p className="text-xs text-gray-500">{user?.email}</p>
+                      </div>
+                      <a href="/account" className="block text-sm font-light transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
+                        My Account
+                      </a>
+                      <a href="/orders" className="block text-sm font-light transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
+                        My Orders
+                      </a>
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full text-sm font-light text-left text-red-500 transition-colors hover:text-red-600"
+                      >
+                        Logout
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleLogin}
+                        className="block w-full py-3 text-sm font-light text-center text-black transition-all border border-black hover:bg-black hover:text-white"
+                      >
+                        Sign In
+                      </button>
+                      <a href="/register" className="block text-sm font-light text-center transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
+                        Create Account
+                      </a>
+                    </>
+                  )}
+                  <a href="/contact" className="block text-sm font-light transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
+                    Contact
+                  </a>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </nav>
   );
-}
+};
+
+export default Navbar;
