@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
+import axios from "axios";
 import { 
   ShoppingBag, 
   Heart, 
@@ -17,12 +18,13 @@ import {
   Plus,
   BookOpen,
   Users,
-  Leaf
+  Leaf,
+  Loader
 } from "lucide-react";
 
 export default function ProductOverview() {
   const params = useParams();
-  const productId = params.id;
+  const productId = params.id; // This should be productId from your backend
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [status, setStatus] = useState("loading");
@@ -36,73 +38,111 @@ export default function ProductOverview() {
     window.scrollTo(0, 0);
   }, []);
 
-  // Dummy data for testing
-  const dummyProduct = {
-    id: productId || "1",
-    _id: productId || "1",
-    productId: "SKI002",
-    productName: "Golden Saffron Elixir Serum",
-    name: "Golden Saffron Elixir Serum",
-    altNames: ["Saffron Glow Serum", "Luminous Elixir"],
-    category: "Skincare",
-    price: 220,
-    lastPrice: 145,
-    rating: 4.8,
-    reviewCount: 89,
-    description: "A luminous serum infused with precious saffron threads for radiant, glowing skin. This potent elixir combines ancient Ayurvedic wisdom with modern dermatological science to deliver transformative results. Formulated with 24K gold particles and hyaluronic acid for maximum hydration and luminosity.",
-    longDescription: "The Golden Saffron Elixir Serum is a testament to our commitment to merging traditional beauty rituals with cutting-edge science. Each bottle contains over 10,000 hand-picked saffron stigmas, carefully extracted to preserve their antioxidant properties. This serum is clinically proven to increase skin hydration by 200% in just 30 days, while reducing the appearance of fine lines and hyperpigmentation.",
-    ingredients: ["Pure Saffron Extract", "24K Gold Particles", "Hyaluronic Acid", "Vitamin C", "Niacinamide", "Rosehip Oil"],
-    benefits: ["Brightening", "Anti-Aging", "Hydrating", "Soothing", "Even Skin Tone"],
-    features: ["Vegan", "Cruelty-Free", "Sustainable Packaging", "Clean Formula"],
-    images: [
-      "https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?q=80&w=1140&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?q=80&w=1140&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1140&auto=format&fit=crop"
-    ],
-    isNew: true,
-    isBestSeller: true,
-    inStock: true,
-    variants: [
-      { id: 1, name: "30ml", price: 145, sku: "SERUM-30" },
-      { id: 2, name: "50ml", price: 220, sku: "SERUM-50" },
-      { id: 3, name: "100ml", price: 380, sku: "SERUM-100" }
-    ],
-    shippingInfo: "Free shipping on orders over $75. Ships within 1-2 business days.",
-    returnPolicy: "30-day return policy. Full refund if not satisfied.",
-    howToUse: [
-      "Apply 2-3 drops to cleansed face and neck",
-      "Gently massage in upward motions",
-      "Use morning and night for best results",
-      "Follow with moisturizer"
-    ]
+  // Transform backend product data to match frontend format
+  const transformProductData = (backendProduct) => {
+    // If product already has variants, use them
+    if (backendProduct.variants && backendProduct.variants.length > 0) {
+      return backendProduct;
+    }
+    
+    // Otherwise create a single variant from the product data
+    const variants = [
+      { 
+        id: 1, 
+        name: "Standard", 
+        price: backendProduct.lastPrice || backendProduct.price,
+        sku: backendProduct.productId || backendProduct._id 
+      }
+    ];
+    
+    return {
+      ...backendProduct,
+      variants,
+      productName: backendProduct.productName || backendProduct.name,
+      description: backendProduct.description || "",
+      longDescription: backendProduct.detailedDescription || backendProduct.description || "",
+      // Map benefits to include all benefit types
+      benefits: backendProduct.benefits || [],
+      // Ensure features array exists
+      features: backendProduct.features || [],
+      // Ensure ingredients array exists (you might want to add this to your model)
+      ingredients: backendProduct.ingredients || [],
+      // Ensure howToUse array exists (you might want to add this to your model)
+      howToUse: backendProduct.howToUse || [
+        "Apply as directed on packaging",
+        "Use consistently for best results",
+        "Store in a cool, dry place"
+      ],
+      shippingInfo: "Free shipping on orders over $75. Ships within 1-2 business days.",
+      returnPolicy: "30-day return policy. Full refund if not satisfied.",
+      inStock: backendProduct.stock > 0,
+      // Ensure images array is properly formatted
+      images: backendProduct.images && backendProduct.images.length > 0 
+        ? backendProduct.images 
+        : ["https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop"]
+    };
   };
 
   useEffect(() => {
-    // Simulate API call
-    setStatus("loading");
-    setTimeout(() => {
-      // In a real app, you would fetch from API based on productId
-      // For now, use dummy data
-      setProduct(dummyProduct);
-      setSelectedVariant(dummyProduct.variants[0]);
-      setStatus("found");
-    }, 500);
+    const fetchProduct = async () => {
+      setStatus("loading");
+      try {
+        // Fetch product from backend API
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/products/${productId}`
+        );
+        
+        if (response.data.product) {
+          const transformedProduct = transformProductData(response.data.product);
+          setProduct(transformedProduct);
+          setSelectedVariant(transformedProduct.variants[0]);
+          setStatus("found");
+        } else {
+          setStatus("notFound");
+        }
+      } catch (error) {
+        console.error("Error fetching product:", error);
+        toast.error("Failed to load product. Please try again.");
+        setStatus("notFound");
+      }
+    };
+
+    if (productId) {
+      fetchProduct();
+    }
   }, [productId]);
 
   const addToCart = () => {
+    if (!product) return;
+    
     const item = {
-      id: product.id,
+      id: product._id,
+      productId: product.productId,
       name: product.productName,
       price: selectedVariant.price,
       variant: selectedVariant.name,
       quantity: quantity,
-      image: product.images[0]
+      image: product.images && product.images.length > 0 ? product.images[0] : ""
     };
     
     // Add to local storage or state management
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    cart.push(item);
+    
+    // Check if item already exists in cart
+    const existingItemIndex = cart.findIndex(
+      cartItem => 
+        cartItem.id === item.id && 
+        cartItem.variant === item.variant
+    );
+    
+    if (existingItemIndex > -1) {
+      // Update quantity if item exists
+      cart[existingItemIndex].quantity += quantity;
+    } else {
+      // Add new item
+      cart.push(item);
+    }
+    
     localStorage.setItem('cart', JSON.stringify(cart));
     
     toast.success(`${quantity} × ${product.productName} (${selectedVariant.name}) added to cart`);
@@ -110,12 +150,38 @@ export default function ProductOverview() {
   };
 
   const addToWishlist = () => {
+    if (!product) return;
+    
     setIsLiked(!isLiked);
-    toast.success(
-      !isLiked 
-        ? `${product.productName} added to wishlist` 
-        : `${product.productName} removed from wishlist`
-    );
+    
+    // Get wishlist from localStorage
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    
+    if (!isLiked) {
+      // Add to wishlist
+      const wishlistItem = {
+        id: product._id,
+        productId: product.productId,
+        name: product.productName,
+        price: selectedVariant.price,
+        image: product.images && product.images.length > 0 ? product.images[0] : "",
+        category: product.category
+      };
+      
+      // Check if already in wishlist
+      const exists = wishlist.some(item => item.id === wishlistItem.id);
+      
+      if (!exists) {
+        wishlist.push(wishlistItem);
+        localStorage.setItem('wishlist', JSON.stringify(wishlist));
+        toast.success(`${product.productName} added to wishlist`);
+      }
+    } else {
+      // Remove from wishlist
+      const updatedWishlist = wishlist.filter(item => item.id !== product._id);
+      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+      toast.success(`${product.productName} removed from wishlist`);
+    }
   };
 
   const increaseQuantity = () => {
@@ -139,7 +205,7 @@ export default function ProductOverview() {
     );
   }
 
-  if (!product) {
+  if (status === "notFound" || !product) {
     return (
       <div className="min-h-screen pt-20 bg-white">
         <div className="container px-6 py-20 mx-auto">
@@ -176,7 +242,7 @@ export default function ProductOverview() {
             <Link to="/shop" className="transition-colors hover:text-gray-700">Shop</Link>
             <ChevronRight className="w-4 h-4 mx-2" />
             <Link to={`/shop/${product.category.toLowerCase()}`} className="transition-colors hover:text-gray-700">
-              {product.category}
+              {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
             </Link>
             <ChevronRight className="w-4 h-4 mx-2" />
             <span className="max-w-xs text-gray-900 truncate">{product.productName}</span>
@@ -195,6 +261,9 @@ export default function ProductOverview() {
                 src={product.images[selectedImage]}
                 alt={product.productName}
                 className="object-cover w-full h-full transition-transform duration-500 hover:scale-105"
+                onError={(e) => {
+                  e.target.src = "https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop";
+                }}
               />
               
               {/* Badges */}
@@ -209,12 +278,23 @@ export default function ProductOverview() {
                     BESTSELLER
                   </span>
                 )}
+                {product.stock < 10 && product.stock > 0 && (
+                  <span className="px-3 py-1 text-xs font-light text-white bg-red-500 rounded-full">
+                    LOW STOCK
+                  </span>
+                )}
+                {product.stock === 0 && (
+                  <span className="px-3 py-1 text-xs font-light text-white bg-gray-500 rounded-full">
+                    OUT OF STOCK
+                  </span>
+                )}
               </div>
               
               {/* Like Button */}
               <button
                 onClick={addToWishlist}
                 className="absolute p-2 transition-colors rounded-full top-4 right-4 bg-white/80 backdrop-blur-sm hover:bg-white"
+                disabled={!product.inStock}
               >
                 <Heart className={`w-5 h-5 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
               </button>
@@ -236,6 +316,9 @@ export default function ProductOverview() {
                     src={image}
                     alt={`${product.productName} view ${index + 1}`}
                     className="object-cover w-full h-full"
+                    onError={(e) => {
+                      e.target.src = "https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop";
+                    }}
                   />
                 </button>
               ))}
@@ -254,10 +337,10 @@ export default function ProductOverview() {
                 {product.inStock ? (
                   <div className="flex items-center gap-1 text-sm text-green-600">
                     <Check className="w-4 h-4" />
-                    <span>In Stock</span>
+                    <span>In Stock ({product.stock} available)</span>
                   </div>
                 ) : (
-                  <span className="text-sm text-gray-500">Out of Stock</span>
+                  <span className="text-sm text-red-500">Out of Stock</span>
                 )}
               </div>
               
@@ -266,12 +349,18 @@ export default function ProductOverview() {
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-4 h-4 ${i < Math.floor(product.rating) ? "fill-amber-400 text-amber-400" : "text-gray-200"}`}
+                      className={`w-4 h-4 ${
+                        i < Math.floor(product.rating) 
+                          ? "fill-amber-400 text-amber-400" 
+                          : i < product.rating
+                          ? "fill-amber-400 text-amber-400 opacity-50"
+                          : "text-gray-200"
+                      }`}
                     />
                   ))}
                 </div>
                 <span className="text-sm text-gray-500">
-                  {product.rating} ({product.reviewCount} reviews)
+                  {product.rating.toFixed(1)} ({product.reviewCount || 0} reviews)
                 </span>
               </div>
             </div>
@@ -294,22 +383,17 @@ export default function ProductOverview() {
                 <span className="text-3xl font-light">
                   ${selectedVariant.price.toFixed(2)}
                 </span>
-                {product.price > selectedVariant.price && (
+                {product.originalPrice && product.originalPrice > selectedVariant.price && (
                   <>
                     <span className="text-lg text-gray-400 line-through">
-                      ${product.price.toFixed(2)}
+                      ${product.originalPrice.toFixed(2)}
                     </span>
                     <span className="px-2 py-1 text-sm font-light text-red-600 rounded bg-red-50">
-                      Save ${(product.price - selectedVariant.price).toFixed(2)}
+                      Save ${(product.originalPrice - selectedVariant.price).toFixed(2)}
                     </span>
                   </>
                 )}
               </div>
-              {product.price > selectedVariant.price && (
-                <p className="text-sm text-gray-500">
-                  You save {(((product.price - selectedVariant.price) / product.price) * 100).toFixed(0)}%
-                </p>
-              )}
             </div>
 
             {/* Short Description */}
@@ -321,16 +405,19 @@ export default function ProductOverview() {
 
             {/* Variants */}
             <div>
-              <h3 className="mb-3 text-sm font-light text-gray-500">Select Size</h3>
+              <h3 className="mb-3 text-sm font-light text-gray-500">Select Option</h3>
               <div className="flex flex-wrap gap-3">
                 {product.variants.map((variant) => (
                   <button
                     key={variant.id}
                     onClick={() => setSelectedVariant(variant)}
+                    disabled={!product.inStock}
                     className={`px-4 py-3 border rounded-lg transition-all flex flex-col items-center justify-center min-w-[100px] ${
                       selectedVariant?.id === variant.id
                         ? "border-black bg-black text-white"
-                        : "border-gray-200 hover:border-gray-400"
+                        : product.inStock
+                        ? "border-gray-200 hover:border-gray-400"
+                        : "border-gray-100 text-gray-400 cursor-not-allowed"
                     }`}
                   >
                     <div className="text-sm font-light">{variant.name}</div>
@@ -347,17 +434,20 @@ export default function ProductOverview() {
                 <div className="flex items-center border border-gray-200 rounded-lg w-fit">
                   <button
                     onClick={decreaseQuantity}
-                    disabled={quantity <= 1}
+                    disabled={quantity <= 1 || !product.inStock}
                     className={`p-3 transition-colors ${
-                      quantity <= 1 ? 'text-gray-300' : 'hover:bg-gray-50'
+                      quantity <= 1 || !product.inStock ? 'text-gray-300' : 'hover:bg-gray-50'
                     }`}
                   >
                     <Minus className="w-4 h-4" />
                   </button>
-                  <span className="px-6 py-3 text-lg font-light">{quantity}</span>
+                  <span className={`px-6 py-3 text-lg font-light ${!product.inStock ? 'text-gray-400' : ''}`}>
+                    {quantity}
+                  </span>
                   <button
                     onClick={increaseQuantity}
-                    className="p-3 transition-colors hover:bg-gray-50"
+                    disabled={!product.inStock}
+                    className={`p-3 transition-colors ${!product.inStock ? 'text-gray-300' : 'hover:bg-gray-50'}`}
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -366,21 +456,32 @@ export default function ProductOverview() {
 
               <div className="flex gap-4">
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={product.inStock ? { scale: 1.02 } : {}}
+                  whileTap={product.inStock ? { scale: 0.98 } : {}}
                   onClick={addToCart}
-                  className="flex items-center justify-center flex-1 gap-2 py-4 text-sm font-light tracking-wider text-white transition-colors bg-black rounded-lg hover:bg-gray-800"
+                  disabled={!product.inStock}
+                  className={`flex items-center justify-center flex-1 gap-2 py-4 text-sm font-light tracking-wider text-white rounded-lg transition-colors ${
+                    product.inStock 
+                      ? 'bg-black hover:bg-gray-800' 
+                      : 'bg-gray-400 cursor-not-allowed'
+                  }`}
                 >
                   <ShoppingBag className="w-5 h-5" />
-                  Add to Ritual - ${(selectedVariant.price * quantity).toFixed(2)}
+                  {product.inStock 
+                    ? `Add to Ritual - ${(selectedVariant.price * quantity).toFixed(2)}`
+                    : 'Out of Stock'
+                  }
                 </motion.button>
                 
                 <button
                   onClick={addToWishlist}
+                  disabled={!product.inStock}
                   className={`p-4 border rounded-lg transition-colors flex items-center justify-center ${
                     isLiked 
                       ? 'border-red-200 bg-red-50 text-red-600' 
-                      : 'border-gray-200 hover:border-gray-400'
+                      : product.inStock
+                      ? 'border-gray-200 hover:border-gray-400'
+                      : 'border-gray-100 text-gray-400 cursor-not-allowed'
                   }`}
                   title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
                 >
@@ -447,55 +548,63 @@ export default function ProductOverview() {
               </div>
             </div>
 
-            {/* Ingredients */}
-            <div>
-              <h2 className="flex items-center gap-2 mb-4 text-xl font-light">
-                <Leaf className="w-5 h-5" />
-                Key Ingredients
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {product.ingredients.map((ingredient) => (
-                  <span 
-                    key={ingredient} 
-                    className="px-3 py-2 text-sm font-light transition-colors border border-gray-200 rounded-lg cursor-default hover:border-gray-400"
-                    title={ingredient}
-                  >
-                    {ingredient}
-                  </span>
-                ))}
+            {/* Ingredients - Only show if we have ingredients */}
+            {product.ingredients && product.ingredients.length > 0 && (
+              <div>
+                <h2 className="flex items-center gap-2 mb-4 text-xl font-light">
+                  <Leaf className="w-5 h-5" />
+                  Key Ingredients
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {product.ingredients.map((ingredient, index) => (
+                    <span 
+                      key={index} 
+                      className="px-3 py-2 text-sm font-light transition-colors border border-gray-200 rounded-lg cursor-default hover:border-gray-400"
+                      title={ingredient}
+                    >
+                      {ingredient}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right Column */}
           <div className="space-y-8">
-            {/* Benefits */}
-            <div>
-              <h2 className="mb-4 text-xl font-light">Benefits</h2>
-              <div className="space-y-3">
-                {product.benefits.map((benefit) => (
-                  <div key={benefit} className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg">
-                    <Check className="w-4 h-4 text-green-500" />
-                    <span className="text-gray-600">{benefit}</span>
-                  </div>
-                ))}
+            {/* Benefits - Only show if we have benefits */}
+            {product.benefits && product.benefits.length > 0 && (
+              <div>
+                <h2 className="mb-4 text-xl font-light">Benefits</h2>
+                <div className="space-y-3">
+                  {product.benefits.map((benefit, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-gray-600">
+                        {benefit.charAt(0).toUpperCase() + benefit.slice(1).replace('-', ' ')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Features */}
-            <div>
-              <h2 className="flex items-center gap-2 mb-4 text-xl font-light">
-                <Users className="w-5 h-5" />
-                Our Promise
-              </h2>
-              <div className="space-y-3">
-                {product.features.map((feature) => (
-                  <div key={feature} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-                    <span className="text-sm font-light text-gray-600">{feature}</span>
-                  </div>
-                ))}
+            {/* Features - Only show if we have features */}
+            {product.features && product.features.length > 0 && (
+              <div>
+                <h2 className="flex items-center gap-2 mb-4 text-xl font-light">
+                  <Users className="w-5 h-5" />
+                  Our Promise
+                </h2>
+                <div className="space-y-3">
+                  {product.features.map((feature, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                      <span className="text-sm font-light text-gray-600">{feature}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Shipping & Returns */}
             <div className="space-y-4">
