@@ -10,12 +10,16 @@ import {
   Check,
   ArrowLeft
 } from "lucide-react";
-import { Link } from "react-router-dom";
-import SignupImg from '../assets/signup.jpg'
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import toast from "react-hot-toast";
+import SignupImg from '../assets/signup.jpg';
 
 export default function SignUpPage() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -33,16 +37,55 @@ export default function SignUpPage() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    
+    if (!formData.agreeTerms) {
+      toast.error("Please agree to the terms and conditions");
+      return;
+    }
+    
     setIsLoading(true);
-    // Add your signup logic here
-    console.log("Signup data:", formData);
-    // Simulate API call
-    setTimeout(() => {
+    
+    try {
+      const userData = {
+        firstName: formData.firstName.split(' ')[0],
+        lastName: formData.firstName.split(' ').slice(1).join(' ') || formData.firstName.split(' ')[0],
+        email: formData.email,
+        password: formData.password,
+        type: "customer" // Default to customer for frontend signup
+      };
+      
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/users`,
+        userData
+      );
+      
+      if (response.data.message === "User created") {
+        toast.success("Account created successfully! Please login.");
+        navigate("/login");
+      } else {
+        toast.error(response.data.message || "Signup failed");
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      
+      if (error.response?.status === 409 || error.response?.data?.message?.includes("duplicate")) {
+        toast.error("Email already exists. Please use a different email.");
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Signup failed. Please try again.");
+      }
+    } finally {
       setIsLoading(false);
-      // Redirect or show success message
-    }, 1500);
+    }
   };
 
   const passwordStrength = formData.password.length > 0 
@@ -105,14 +148,15 @@ export default function SignUpPage() {
                 </div>
                 <input
                   type="text"
-                  name="name"
-                  value={formData.name}
+                  name="firstName"
+                  value={formData.firstName}
                   onChange={handleChange}
                   required
                   className="w-full py-3 pl-10 pr-3 text-sm transition-colors border border-gray-200 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
                   placeholder="Your full name"
                 />
               </div>
+              <p className="mt-1 text-xs text-gray-400">We'll split this into first and last name</p>
             </div>
 
             {/* Email */}
@@ -151,8 +195,9 @@ export default function SignUpPage() {
                   value={formData.password}
                   onChange={handleChange}
                   required
+                  minLength={6}
                   className="w-full py-3 pl-10 pr-10 text-sm transition-colors border border-gray-200 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
-                  placeholder="Create a password"
+                  placeholder="Create a password (min. 6 characters)"
                 />
                 <button
                   type="button"
@@ -189,7 +234,7 @@ export default function SignUpPage() {
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-gray-400">
-                    Use 8+ characters with letters and numbers
+                    Use 6+ characters with letters and numbers for better security
                   </p>
                 </div>
               )}
@@ -210,6 +255,7 @@ export default function SignUpPage() {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   required
+                  minLength={6}
                   className={`w-full pl-10 pr-10 py-3 text-sm border rounded-lg focus:outline-none focus:ring-1 transition-colors ${
                     formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword
                       ? "border-red-300 focus:border-red-500 focus:ring-red-500"
@@ -264,7 +310,7 @@ export default function SignUpPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading || !formData.agreeTerms || (formData.password !== formData.confirmPassword)}
+              disabled={isLoading || !formData.agreeTerms || (formData.password !== formData.confirmPassword) || formData.password.length < 6}
               className="flex items-center justify-center w-full px-4 py-3 text-sm font-light tracking-wider text-white transition-colors bg-black rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
@@ -294,11 +340,12 @@ export default function SignUpPage() {
               </div>
             </div>
 
-            {/* Social Signup */}
+            {/* Social Signup (Optional - for future implementation) */}
             <div className="grid grid-cols-3 gap-3 mt-6">
               <button
                 type="button"
                 className="inline-flex justify-center w-full px-4 py-2 text-sm font-light text-gray-600 transition-colors border border-gray-200 rounded-lg hover:bg-gray-50"
+                disabled
               >
                 <span className="sr-only">Sign up with Google</span>
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -309,6 +356,7 @@ export default function SignUpPage() {
               <button
                 type="button"
                 className="inline-flex justify-center w-full px-4 py-2 text-sm font-light text-gray-600 transition-colors border border-gray-200 rounded-lg hover:bg-gray-50"
+                disabled
               >
                 <span className="sr-only">Sign up with Facebook</span>
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -319,6 +367,7 @@ export default function SignUpPage() {
               <button
                 type="button"
                 className="inline-flex justify-center w-full px-4 py-2 text-sm font-light text-gray-600 transition-colors border border-gray-200 rounded-lg hover:bg-gray-50"
+                disabled
               >
                 <span className="sr-only">Sign up with Apple</span>
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -339,7 +388,7 @@ export default function SignUpPage() {
             </p>
 
             {/* Benefits List */}
-            {/* <div className="p-4 mt-8 rounded-lg bg-gray-50">
+            <div className="p-4 mt-8 rounded-lg bg-gray-50">
               <p className="mb-3 text-sm font-light text-gray-600">When you create an account:</p>
               <ul className="space-y-2 text-sm text-gray-500">
                 <li className="flex items-center gap-2">
@@ -359,7 +408,7 @@ export default function SignUpPage() {
                   <span>Get personalized product recommendations</span>
                 </li>
               </ul>
-            </div> */}
+            </div>
           </div>
         </motion.div>
       </div>

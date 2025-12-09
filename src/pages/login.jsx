@@ -3,10 +3,11 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { Mail, Lock, ArrowRight, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import LoginImg from '../assets/login.jpg'
+import { Link, useNavigate } from "react-router-dom";
+import LoginImg from '../assets/login.jpg';
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -14,30 +15,81 @@ export default function LoginPage() {
 
   function login(e) {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+    
     setIsLoading(true);
     
     axios
-      .post(import.meta.env.VITE_BACKEND_URL + "/api/users/login", {
+      .post(`${import.meta.env.VITE_BACKEND_URL}/api/users/login`, {
         email: email,
         password: password,
       })
       .then((res) => {
         setIsLoading(false);
-        if (res.data.user == null) {
+        console.log("Login response:", res.data); // Debug log
+        
+        // Check for successful login - handle different response formats
+        if (res.data.message && (
+            res.data.message === "User logged in successfully" || 
+            res.data.message === "User Logged in" ||
+            res.data.message.toLowerCase().includes("logged in")
+        )) {
+          toast.success("Welcome back!");
+          localStorage.setItem("token", res.data.token);
+          localStorage.setItem("user", JSON.stringify(res.data.user));
+          
+          // Use navigate instead of window.location for better React Router integration
+          if (res.data.user.type === "admin") {
+            navigate("/admin");
+          } else {
+            navigate("/");
+          }
+        } else if (res.data.message === "User Not found" || res.data.message === "User not found") {
+          toast.error("No account found with this email");
+        } else if (res.data.message && res.data.message.includes("Invalid Password")) {
+          toast.error("Incorrect password");
+        } else if (res.data.message && res.data.message.includes("blocked")) {
+          toast.error("Account is blocked. Please contact administrator.");
+        } else if (res.data.message) {
           toast.error(res.data.message);
-          return;
-        }
-        toast.success("Welcome back");
-        localStorage.setItem("token", res.data.token);
-        if (res.data.user.type === "admin") {
-          window.location.href = "/admin";
         } else {
-          window.location.href = "/";
+          toast.error("Login failed - No response message");
         }
       })
       .catch((error) => {
         setIsLoading(false);
-        toast.error("Login failed. Please try again.");
+        console.error("Login error:", error);
+        
+        // More detailed error handling
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          console.error("Response data:", error.response.data);
+          console.error("Response status:", error.response.status);
+          
+          if (error.response.status === 401) {
+            toast.error("Invalid email or password");
+          } else if (error.response.status === 403) {
+            toast.error("Account is blocked. Please contact administrator.");
+          } else if (error.response.status === 404) {
+            toast.error("User not found");
+          } else if (error.response.data?.message) {
+            toast.error(error.response.data.message);
+          } else {
+            toast.error(`Login failed: ${error.response.status}`);
+          }
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.error("No response received:", error.request);
+          toast.error("Cannot connect to server. Please check your connection.");
+        } else {
+          // Something happened in setting up the request
+          console.error("Request setup error:", error.message);
+          toast.error("Login failed. Please try again.");
+        }
       });
   }
 
@@ -142,7 +194,7 @@ export default function LoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !email || !password}
               className="flex items-center justify-center w-full px-4 py-3 text-sm font-light tracking-wider text-white transition-colors bg-black rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
@@ -172,11 +224,12 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Social Login */}
+            {/* Social Login (Optional - for future implementation) */}
             <div className="grid grid-cols-3 gap-3 mt-6">
               <button
                 type="button"
                 className="inline-flex justify-center w-full px-4 py-2 text-sm font-light text-gray-600 transition-colors border border-gray-200 rounded-lg hover:bg-gray-50"
+                disabled
               >
                 <span className="sr-only">Sign in with Google</span>
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -187,6 +240,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="inline-flex justify-center w-full px-4 py-2 text-sm font-light text-gray-600 transition-colors border border-gray-200 rounded-lg hover:bg-gray-50"
+                disabled
               >
                 <span className="sr-only">Sign in with Facebook</span>
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -197,10 +251,11 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="inline-flex justify-center w-full px-4 py-2 text-sm font-light text-gray-600 transition-colors border border-gray-200 rounded-lg hover:bg-gray-50"
+                disabled
               >
                 <span className="sr-only">Sign in with Apple</span>
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M14.94 5.19A4.38 4.38 0 0 0 16 2a4.44 4.44 0 0 0-3 1.52 4.17 4.17 0 0 0-1 3.09 3.69 3.69 0 0 0 2.94-1.42zm2.52 7.44a4.51 4.51 0 0 1 2.16-3.81 4.66 4.66 0 0 0-3.66-2c-1.56-.16-3 .91-3.83.91s-2-.89-3.3-.87a4.92 4.92 0 0 0-4.14 2.53C2.93 12.45 4.24 17 6 19.47c.8 1.21 1.8 2.58 3.12 2.53s1.75-.76 3.28-.76 2 .76 3.3.73 2.22-1.24 3.06-2.45a11 11 0 0 0 1.38-2.85 4.41 4.41 0 0 1-2.68-4.04z" />
+                  <path d="M14.94 5.19A4.38 4.38 0 0 0 16 2a4.44 4.44 0 0 0-3 1.52 4.17 4.17 0 0 0-1 3.09 3.69 3.69 0 0 0 2.94-1.42zm2.52 7.44a4.51 4.51 0 0 1 2.16-3.81a4.66 4.66 0 0 0-3.66-2c-1.56-.16-3 .91-3.83.91s-2-.89-3.3-.87a4.92 4.92 0 0 0-4.14 2.53C2.93 12.45 4.24 17 6 19.47c.8 1.21 1.8 2.58 3.12 2.53s1.75-.76 3.28-.76 2 .76 3.3.73 2.22-1.24 3.06-2.45a11 11 0 0 0 1.38-2.85a4.41 4.41 0 0 1-2.68-4.04z" />
                 </svg>
               </button>
             </div>
@@ -213,8 +268,14 @@ export default function LoginPage() {
                 className="font-light text-black underline transition-colors hover:text-gray-600"
               >
                 Create account
-            </Link>
+              </Link>
             </p>
+
+            {/* Demo Account Info */}
+            <div className="p-4 mt-6 text-xs text-gray-500 rounded-lg bg-gray-50">
+              <p className="mb-1 font-medium">Debug Mode - Check Console</p>
+              <p>Use: johndoe@example.com / securepassword123</p>
+            </div>
 
             {/* Terms */}
             <p className="mt-4 text-xs text-center text-gray-400">
@@ -232,7 +293,6 @@ export default function LoginPage() {
         <div 
           className="absolute inset-0 bg-center bg-cover"
           style={{ backgroundImage: `url(${LoginImg})` }}
-
         >
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="absolute text-white bottom-12 left-12">

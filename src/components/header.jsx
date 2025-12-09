@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, ShoppingBag, Heart, Menu, X, ChevronDown, User, LogOut, Settings, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,11 +13,51 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check both token and user in localStorage
+    const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setIsLoggedIn(true);
-      setUser(JSON.parse(storedUser));
+    
+    if (token && storedUser) {
+      try {
+        setIsLoggedIn(true);
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        // Clear invalid data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    } else {
+      setIsLoggedIn(false);
+      setUser(null);
     }
+  }, []);
+
+  // Listen for storage changes (for login/logout from other tabs)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      
+      if (token && storedUser) {
+        try {
+          setIsLoggedIn(true);
+          setUser(JSON.parse(storedUser));
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          setIsLoggedIn(false);
+          setUser(null);
+        }
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleLogin = () => {
@@ -28,19 +68,30 @@ const Navbar = () => {
     navigate('/signup');
   };
   
-  const handleCart = () =>{
+  const handleCart = () => {
     navigate('/cart');
   }
 
-   const handleWishlist = () =>{
+  const handleWishlist = () => {
     navigate('/wishlist');
-  }
+  };
+
   const handleLogout = () => {
+    // Clear all auth data
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Update state
     setIsLoggedIn(false);
     setUser(null);
     setUserProfileDropdown(false);
-    localStorage.removeItem('user');
     setIsMenuOpen(false);
+    
+    // Navigate to home
+    navigate('/');
+    
+    // Optional: Show logout success message
+    // toast.success('Logged out successfully');
   };
 
   useEffect(() => {
@@ -89,6 +140,44 @@ const Navbar = () => {
     setActiveDropdown(null);
   };
 
+  // Format user name from backend response
+  const getUserName = () => {
+    if (!user) return 'User';
+    
+    // Backend returns firstName and lastName separately
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    
+    // Fallback to name if exists
+    if (user.name) {
+      return user.name;
+    }
+    
+    // Fallback to email first part
+    if (user.email) {
+      return user.email.split('@')[0];
+    }
+    
+    return 'User';
+  };
+
+  // Get user initial for avatar
+  const getUserInitial = () => {
+    if (!user) return 'U';
+    
+    const name = getUserName();
+    return name.charAt(0).toUpperCase();
+  };
+
+  // Get user profile picture
+  const getUserProfilePic = () => {
+    if (user && user.profilePic) {
+      return user.profilePic;
+    }
+    return null;
+  };
+
   return (
     <nav 
       className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white/80 backdrop-blur-sm'}`}
@@ -102,9 +191,9 @@ const Navbar = () => {
             animate={{ opacity: 1, x: 0 }}
             className="text-2xl font-light tracking-wider"
           >
-            <a href="/" className="transition-colors hover:text-gray-600">
+            <Link to="/" className="transition-colors hover:text-gray-600">
               ELEVÉ
-            </a>
+            </Link>
           </motion.div>
 
           {/* Desktop Menu */}
@@ -115,15 +204,15 @@ const Navbar = () => {
                 className="relative"
                 onMouseEnter={() => handleMouseEnter(item.label)}
               >
-                <a 
-                  href={item.href || '#'}
+                <Link 
+                  to={item.href || '#'}
                   className="flex items-center gap-1 text-sm font-light tracking-wide transition-colors hover:text-gray-600"
                 >
                   {item.label}
                   {item.hasDropdown && (
                     <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${activeDropdown === item.label ? 'rotate-180' : ''}`} />
                   )}
-                </a>
+                </Link>
 
                 {/* Dropdown Menu */}
                 {item.hasDropdown && activeDropdown === item.label && (
@@ -134,13 +223,13 @@ const Navbar = () => {
                     className="absolute left-0 w-48 py-2 mt-2 bg-white border border-gray-100 shadow-lg top-full"
                   >
                     {item.dropdownItems.map((dropdownItem) => (
-                      <a
+                      <Link
                         key={dropdownItem.label}
-                        href={dropdownItem.href}
+                        to={dropdownItem.href}
                         className="block px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50"
                       >
                         {dropdownItem.label}
-                      </a>
+                      </Link>
                     ))}
                   </motion.div>
                 )}
@@ -153,16 +242,22 @@ const Navbar = () => {
             <button className="hidden transition-colors md:block hover:text-gray-600" aria-label="Search">
               <Search className="w-5 h-5" />
             </button>
-            <button className="relative transition-colors hover:text-gray-600" aria-label="Wishlist" onClick={handleWishlist}>
-              <Heart className="w-5 h-5" />
-              <span className="absolute w-2 h-2 bg-red-500 rounded-full -top-1 -right-1"></span>
-            </button>
-            <button className="relative transition-colors hover:text-gray-600" aria-label="Shopping cart">
-              <ShoppingBag className="w-5 h-5" onClick={handleCart}/>
-              <span className="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-black rounded-full -top-2 -right-2">
-                3
-              </span>
-            </button>
+            
+            {isLoggedIn && (
+              <button className="relative transition-colors hover:text-gray-600" aria-label="Wishlist" onClick={handleWishlist}>
+                <Heart className="w-5 h-5" />
+                <span className="absolute w-2 h-2 bg-red-500 rounded-full -top-1 -right-1"></span>
+              </button>
+            )}
+            
+            {isLoggedIn && (
+              <button className="relative transition-colors hover:text-gray-600" aria-label="Shopping cart" onClick={handleCart}>
+                <ShoppingBag className="w-5 h-5" />
+                <span className="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-black rounded-full -top-2 -right-2">
+                  0 {/* You can update this with actual cart count */}
+                </span>
+              </button>
+            )}
             
             {/* User Profile / Auth Buttons */}
             <div className="relative">
@@ -176,11 +271,19 @@ const Navbar = () => {
                     className="flex items-center gap-2 transition-colors hover:text-gray-600"
                     aria-label="User profile"
                   >
-                    <div className="flex items-center justify-center w-8 h-8 text-sm text-white bg-black rounded-full">
-                      {user?.name?.charAt(0) || 'U'}
-                    </div>
+                    {getUserProfilePic() ? (
+                      <img 
+                        src={getUserProfilePic()} 
+                        alt={getUserName()}
+                        className="object-cover w-8 h-8 rounded-full"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-8 h-8 text-sm text-white bg-black rounded-full">
+                        {getUserInitial()}
+                      </div>
+                    )}
                     <span className="hidden text-sm font-light md:block">
-                      {user?.name?.split(' ')[0] || 'User'}
+                      {getUserName().split(' ')[0]}
                     </span>
                     <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${userProfileDropdown ? 'rotate-180' : ''}`} />
                   </button>
@@ -197,21 +300,62 @@ const Navbar = () => {
                         onMouseLeave={() => setUserProfileDropdown(false)}
                       >
                         <div className="px-4 py-2 border-b border-gray-100">
-                          <p className="text-sm font-medium">{user?.name}</p>
-                          <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                          <p className="text-sm font-medium truncate">{getUserName()}</p>
+                          <p className="text-xs text-gray-500 truncate">{user?.email || ''}</p>
+                          {user?.type === 'admin' && (
+                            <span className="inline-block px-2 py-1 mt-1 text-xs font-medium text-white bg-red-500 rounded">
+                              Admin
+                            </span>
+                          )}
                         </div>
-                        <a href="/account" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
+                        
+                        <Link 
+                          to="/account" 
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50"
+                          onClick={() => setUserProfileDropdown(false)}
+                        >
                           <User className="w-4 h-4" />
                           My Account
-                        </a>
-                        <a href="/orders" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
+                        </Link>
+                        
+                        <Link 
+                          to="/orders" 
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50"
+                          onClick={() => setUserProfileDropdown(false)}
+                        >
                           <Package className="w-4 h-4" />
                           My Orders
-                        </a>
-                        <a href="/settings" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
+                        </Link>
+                        
+                        <Link 
+                          to="/wishlist" 
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50"
+                          onClick={() => setUserProfileDropdown(false)}
+                        >
+                          <Heart className="w-4 h-4" />
+                          Wishlist
+                        </Link>
+                        
+                        <Link 
+                          to="/settings" 
+                          className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50"
+                          onClick={() => setUserProfileDropdown(false)}
+                        >
                           <Settings className="w-4 h-4" />
                           Settings
-                        </a>
+                        </Link>
+                        
+                        {user?.type === 'admin' && (
+                          <Link 
+                            to="/admin" 
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50"
+                            onClick={() => setUserProfileDropdown(false)}
+                          >
+                            <Settings className="w-4 h-4" />
+                            Admin Dashboard
+                          </Link>
+                        )}
+                        
                         <button
                           onClick={handleLogout}
                           className="flex items-center w-full gap-2 px-4 py-2 text-sm font-light text-left text-red-500 transition-colors hover:bg-gray-50"
@@ -263,24 +407,24 @@ const Navbar = () => {
               <div className="flex flex-col space-y-1">
                 {navItems.map((item) => (
                   <div key={item.label}>
-                    <a 
-                      href={item.href || '#'}
+                    <Link 
+                      to={item.href || '#'}
                       className="block py-3 text-sm font-light transition-colors border-b hover:text-gray-600 border-gray-50"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       {item.label}
-                    </a>
+                    </Link>
                     {item.hasDropdown && (
                       <div className="pl-4 space-y-1">
                         {item.dropdownItems.map((dropdownItem) => (
-                          <a
+                          <Link
                             key={dropdownItem.label}
-                            href={dropdownItem.href}
+                            to={dropdownItem.href}
                             className="block py-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
                             onClick={() => setIsMenuOpen(false)}
                           >
                             {dropdownItem.label}
-                          </a>
+                          </Link>
                         ))}
                       </div>
                     )}
@@ -292,15 +436,44 @@ const Navbar = () => {
                   {isLoggedIn ? (
                     <>
                       <div className="px-2 py-3 border-b border-gray-100">
-                        <p className="text-sm font-medium">{user?.name}</p>
-                        <p className="text-xs text-gray-500">{user?.email}</p>
+                        <p className="text-sm font-medium">{getUserName()}</p>
+                        <p className="text-xs text-gray-500">{user?.email || ''}</p>
+                        {user?.type === 'admin' && (
+                          <span className="inline-block px-2 py-1 mt-1 text-xs font-medium text-white bg-red-500 rounded">
+                            Admin
+                          </span>
+                        )}
                       </div>
-                      <a href="/account" className="block text-sm font-light transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
+                      <Link 
+                        to="/account" 
+                        className="block text-sm font-light transition-colors hover:text-gray-600" 
+                        onClick={() => setIsMenuOpen(false)}
+                      >
                         My Account
-                      </a>
-                      <a href="/orders" className="block text-sm font-light transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
+                      </Link>
+                      <Link 
+                        to="/orders" 
+                        className="block text-sm font-light transition-colors hover:text-gray-600" 
+                        onClick={() => setIsMenuOpen(false)}
+                      >
                         My Orders
-                      </a>
+                      </Link>
+                      <Link 
+                        to="/wishlist" 
+                        className="block text-sm font-light transition-colors hover:text-gray-600" 
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Wishlist
+                      </Link>
+                      {user?.type === 'admin' && (
+                        <Link 
+                          to="/admin" 
+                          className="block text-sm font-light transition-colors hover:text-gray-600" 
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Admin Dashboard
+                        </Link>
+                      )}
                       <button
                         onClick={handleLogout}
                         className="block w-full text-sm font-light text-left text-red-500 transition-colors hover:text-red-600"
@@ -324,9 +497,13 @@ const Navbar = () => {
                       </button>
                     </>
                   )}
-                  <a href="/contact" className="block text-sm font-light transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
+                  <Link 
+                    to="/contact" 
+                    className="block text-sm font-light transition-colors hover:text-gray-600" 
+                    onClick={() => setIsMenuOpen(false)}
+                  >
                     Contact
-                  </a>
+                  </Link>
                 </div>
               </div>
             </motion.div>
