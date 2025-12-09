@@ -2,7 +2,7 @@ import { Search, ShoppingBag, Heart, Menu, X, ChevronRight, Star, Check, ArrowRi
 
 export default function Footer () {
   return (
-     <footer className="py-12 border-t">
+     <footer className="py-12 border-t bg-[#f7f9fa] mt-[100px]">
         <div className="container px-6 mx-auto">
           <div className="flex flex-col items-center justify-between md:flex-row">
             <div className="mb-6 md:mb-0">

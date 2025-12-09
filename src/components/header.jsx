@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Search, ShoppingBag, Heart, Menu, X, ChevronDown, User, LogOut, Settings, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [userProfileDropdown, setUserProfileDropdown] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Change to true to test logged in state
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
-  // Simulate login/logout (replace with actual auth logic)
   useEffect(() => {
-    // Check if user is logged in from localStorage or context
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setIsLoggedIn(true);
@@ -21,12 +21,23 @@ const Navbar = () => {
   }, []);
 
   const handleLogin = () => {
-    // Simulate login
-    const mockUser = { name: 'Alex Morgan', email: 'alex@example.com' };
-    setUser(mockUser);
-    setIsLoggedIn(true);
-    localStorage.setItem('user', JSON.stringify(mockUser));
-    setIsMenuOpen(false); // Close mobile menu
+    navigate('/login');
+    setIsMenuOpen(false);
+  };
+
+  const handleSignup = () => {
+    navigate('/signup');
+    setIsMenuOpen(false);
+  };
+  
+  const handleCart = () => {
+    navigate('/cart');
+    setIsMenuOpen(false);
+  }
+
+  const handleWishlist = () => {
+    navigate('/wishlist');
+    setIsMenuOpen(false);
   };
 
   const handleLogout = () => {
@@ -34,7 +45,7 @@ const Navbar = () => {
     setUser(null);
     setUserProfileDropdown(false);
     localStorage.removeItem('user');
-    setIsMenuOpen(false); // Close mobile menu
+    setIsMenuOpen(false);
   };
 
   useEffect(() => {
@@ -45,32 +56,31 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Navigation items with dropdown support
   const navItems = [
     { 
       label: 'Shop', 
       hasDropdown: true,
       dropdownItems: [
-        { label: 'All Products', href: '/shop/all' },
-        { label: 'Perfumes', href: '/shop/perfumes' },
-        { label: 'Skincare', href: '/shop/skincare' },
-        { label: 'Makeup', href: '/shop/makeup' },
-        { label: 'Tools', href: '/shop/tools' },
+        { label: 'All Products', to: '/shop/all' },
+        { label: 'Perfumes', to: '/shop/perfumes' },
+        { label: 'Skincare', to: '/shop/skincare' },
+        { label: 'Makeup', to: '/shop/makeup' },
+        { label: 'Tools', to: '/shop/tools' },
       ]
     },
-    { label: 'Our Story', href: '/story' },
+    { label: 'Our Story', to: '/story' },
     { 
       label: 'Ingredients', 
       hasDropdown: true,
       dropdownItems: [
-        { label: 'Oud & Attars', href: '/ingredients/oud' },
-        { label: 'Saffron & Gold', href: '/ingredients/saffron' },
-        { label: 'Argan & Rose', href: '/ingredients/argan' },
-        { label: 'Sandalwood', href: '/ingredients/sandalwood' },
+        { label: 'Oud & Attars', to: '/ingredients/oud' },
+        { label: 'Saffron & Gold', to: '/ingredients/saffron' },
+        { label: 'Argan & Rose', to: '/ingredients/argan' },
+        { label: 'Sandalwood', to: '/ingredients/sandalwood' },
       ]
     },
-    { label: 'Rituals', href: '/rituals' },
-    { label: 'Journal', href: '/journal' },
+    { label: 'Rituals', to: '/rituals' },
+    { label: 'Journal', to: '/journal' },
   ];
 
   const handleMouseEnter = (label) => {
@@ -96,9 +106,9 @@ const Navbar = () => {
             animate={{ opacity: 1, x: 0 }}
             className="text-2xl font-light tracking-wider"
           >
-            <a href="/" className="transition-colors hover:text-gray-600">
+            <Link to="/" className="transition-colors hover:text-gray-600">
               ELEVÉ
-            </a>
+            </Link>
           </motion.div>
 
           {/* Desktop Menu */}
@@ -109,15 +119,21 @@ const Navbar = () => {
                 className="relative"
                 onMouseEnter={() => handleMouseEnter(item.label)}
               >
-                <a 
-                  href={item.href || '#'}
-                  className="flex items-center gap-1 text-sm font-light tracking-wide transition-colors hover:text-gray-600"
-                >
-                  {item.label}
-                  {item.hasDropdown && (
+                {item.hasDropdown ? (
+                  <button
+                    className="flex items-center gap-1 text-sm font-light tracking-wide transition-colors hover:text-gray-600"
+                  >
+                    {item.label}
                     <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${activeDropdown === item.label ? 'rotate-180' : ''}`} />
-                  )}
-                </a>
+                  </button>
+                ) : (
+                  <Link 
+                    to={item.to}
+                    className="flex items-center gap-1 text-sm font-light tracking-wide transition-colors hover:text-gray-600"
+                  >
+                    {item.label}
+                  </Link>
+                )}
 
                 {/* Dropdown Menu */}
                 {item.hasDropdown && activeDropdown === item.label && (
@@ -128,13 +144,13 @@ const Navbar = () => {
                     className="absolute left-0 w-48 py-2 mt-2 bg-white border border-gray-100 shadow-lg top-full"
                   >
                     {item.dropdownItems.map((dropdownItem) => (
-                      <a
+                      <Link
                         key={dropdownItem.label}
-                        href={dropdownItem.href}
+                        to={dropdownItem.to}
                         className="block px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50"
                       >
                         {dropdownItem.label}
-                      </a>
+                      </Link>
                     ))}
                   </motion.div>
                 )}
@@ -147,18 +163,26 @@ const Navbar = () => {
             <button className="hidden transition-colors md:block hover:text-gray-600" aria-label="Search">
               <Search className="w-5 h-5" />
             </button>
-            <button className="relative transition-colors hover:text-gray-600" aria-label="Wishlist">
+            <button 
+              className="relative transition-colors hover:text-gray-600" 
+              aria-label="Wishlist" 
+              onClick={handleWishlist}
+            >
               <Heart className="w-5 h-5" />
               <span className="absolute w-2 h-2 bg-red-500 rounded-full -top-1 -right-1"></span>
             </button>
-            <button className="relative transition-colors hover:text-gray-600" aria-label="Shopping cart">
+            <button 
+              className="relative transition-colors hover:text-gray-600" 
+              aria-label="Shopping cart"
+              onClick={handleCart}
+            >
               <ShoppingBag className="w-5 h-5" />
               <span className="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-black rounded-full -top-2 -right-2">
                 3
               </span>
             </button>
             
-            {/* User Profile / Login Button */}
+            {/* User Profile / Auth Buttons */}
             <div className="relative">
               {isLoggedIn ? (
                 <div 
@@ -194,18 +218,18 @@ const Navbar = () => {
                           <p className="text-sm font-medium">{user?.name}</p>
                           <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                         </div>
-                        <a href="/account" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
+                        <Link to="/account" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
                           <User className="w-4 h-4" />
                           My Account
-                        </a>
-                        <a href="/orders" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
+                        </Link>
+                        <Link to="/orders" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
                           <Package className="w-4 h-4" />
                           My Orders
-                        </a>
-                        <a href="/settings" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
+                        </Link>
+                        <Link to="/settings" className="flex items-center gap-2 px-4 py-2 text-sm font-light transition-colors hover:bg-gray-50">
                           <Settings className="w-4 h-4" />
                           Settings
-                        </a>
+                        </Link>
                         <button
                           onClick={handleLogout}
                           className="flex items-center w-full gap-2 px-4 py-2 text-sm font-light text-left text-red-500 transition-colors hover:bg-gray-50"
@@ -218,12 +242,20 @@ const Navbar = () => {
                   </AnimatePresence>
                 </div>
               ) : (
-                <button
-                  onClick={handleLogin}
-                  className="hidden px-4 py-2 text-sm font-light text-black transition-all border border-black md:block hover:bg-black hover:text-white"
-                >
-                  Sign In
-                </button>
+                <div className="items-center hidden gap-3 md:flex">
+                  <button
+                    onClick={handleLogin}
+                    className="px-4 py-2 text-sm font-light text-black transition-all border border-black rounded hover:bg-black hover:text-white"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={handleSignup}
+                    className="px-4 py-2 text-sm font-light text-white transition-colors bg-black rounded hover:bg-gray-800"
+                  >
+                    Sign Up
+                  </button>
+                </div>
               )}
             </div>
             
@@ -249,26 +281,32 @@ const Navbar = () => {
               <div className="flex flex-col space-y-1">
                 {navItems.map((item) => (
                   <div key={item.label}>
-                    <a 
-                      href={item.href || '#'}
-                      className="block py-3 text-sm font-light transition-colors border-b hover:text-gray-600 border-gray-50"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      {item.label}
-                    </a>
-                    {item.hasDropdown && (
-                      <div className="pl-4 space-y-1">
-                        {item.dropdownItems.map((dropdownItem) => (
-                          <a
-                            key={dropdownItem.label}
-                            href={dropdownItem.href}
-                            className="block py-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
-                            onClick={() => setIsMenuOpen(false)}
-                          >
-                            {dropdownItem.label}
-                          </a>
-                        ))}
-                      </div>
+                    {item.hasDropdown ? (
+                      <>
+                        <div className="block py-3 text-sm font-light border-b border-gray-50">
+                          {item.label}
+                        </div>
+                        <div className="pl-4 space-y-1">
+                          {item.dropdownItems.map((dropdownItem) => (
+                            <Link
+                              key={dropdownItem.label}
+                              to={dropdownItem.to}
+                              className="block py-2 text-sm text-gray-500 transition-colors hover:text-gray-700"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              {dropdownItem.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <Link 
+                        to={item.to}
+                        className="block py-3 text-sm font-light transition-colors border-b hover:text-gray-600 border-gray-50"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
                     )}
                   </div>
                 ))}
@@ -281,12 +319,12 @@ const Navbar = () => {
                         <p className="text-sm font-medium">{user?.name}</p>
                         <p className="text-xs text-gray-500">{user?.email}</p>
                       </div>
-                      <a href="/account" className="block text-sm font-light transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
+                      <Link to="/account" className="block text-sm font-light transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
                         My Account
-                      </a>
-                      <a href="/orders" className="block text-sm font-light transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
+                      </Link>
+                      <Link to="/orders" className="block text-sm font-light transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
                         My Orders
-                      </a>
+                      </Link>
                       <button
                         onClick={handleLogout}
                         className="block w-full text-sm font-light text-left text-red-500 transition-colors hover:text-red-600"
@@ -298,18 +336,32 @@ const Navbar = () => {
                     <>
                       <button
                         onClick={handleLogin}
-                        className="block w-full py-3 text-sm font-light text-center text-black transition-all border border-black hover:bg-black hover:text-white"
+                        className="block w-full py-3 text-sm font-light text-center text-black transition-all border border-black rounded hover:bg-black hover:text-white"
                       >
                         Sign In
                       </button>
-                      <a href="/register" className="block text-sm font-light text-center transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
-                        Create Account
-                      </a>
+                      <button
+                        onClick={handleSignup}
+                        className="block w-full py-3 text-sm font-light text-center text-white transition-colors bg-black rounded hover:bg-gray-800"
+                      >
+                        Sign Up
+                      </button>
                     </>
                   )}
-                  <a href="/contact" className="block text-sm font-light transition-colors hover:text-gray-600" onClick={() => setIsMenuOpen(false)}>
-                    Contact
-                  </a>
+                  <button 
+                    onClick={handleWishlist}
+                    className="flex items-center gap-2 text-sm font-light transition-colors hover:text-gray-600"
+                  >
+                    <Heart className="w-4 h-4" />
+                    Wishlist
+                  </button>
+                  <button 
+                    onClick={handleCart}
+                    className="flex items-center gap-2 text-sm font-light transition-colors hover:text-gray-600"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    Cart
+                  </button>
                 </div>
               </div>
             </motion.div>

@@ -5,7 +5,6 @@ import ProductCard from '../../components/ProductCard';
 import HeroSection from '../../components/HeroSection';
 import CategoryGrid from '../../components/CategoryGrid';
 import BenefitsSection from '../../components/BenefitsSection';
-import Footer from '../../components/footer';
 import ImageSlider from '../../components/imageSlider';
 
 const LandingPage = () => {
@@ -139,8 +138,6 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <Footer />
     </div>
   );
 };

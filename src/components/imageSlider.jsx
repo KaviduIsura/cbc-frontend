@@ -1,22 +1,32 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Img1 from "../assets/perfume1.jpg"
+import Img2 from "../assets/perfume2.jpg"
+import Img3 from "../assets/perfume4.jpg"
+import Img4 from "../assets/perfume3.jpg"
+
 
 const ImageSlider = () => {
   const slides = [
     {
       id: 1,
-      image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=2070&auto=format&fit=crop',
+      image: Img1,
       title: 'Cultural Heritage Collection',
     },
     {
       id: 2,
-      image: 'https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=2070&auto=format&fit=crop',
+      image: Img2,
       title: 'Natural Ingredients',
     },
     {
       id: 3,
-      image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=2070&auto=format&fit=crop',
+      image: Img3,
+      title: 'Sustainable Packaging',
+    },
+    {
+      id: 4,
+      image: Img4,
       title: 'Sustainable Packaging',
     },
   ];

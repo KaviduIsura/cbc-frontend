@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-
+import OilImg from '../assets/main.jpg'
+import BgImage from '../assets/background_landing.jpg'
 const HeroSection = () => {
   return (
     <section className="relative flex items-center justify-center min-h-screen pt-16 overflow-hidden">
@@ -8,7 +9,7 @@ const HeroSection = () => {
       <div 
         className="absolute inset-0 z-0"
         style={{
-          backgroundImage: 'url(https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=2070&auto=format&fit=crop)',
+          backgroundImage: `url(${BgImage})`,
           backgroundPosition: 'center',
           backgroundSize: 'cover',
         }}
@@ -30,7 +31,7 @@ const HeroSection = () => {
               <span className="text-sm font-light tracking-widest uppercase">Cultural Formulations</span>
               <h1 className="mt-4 mb-6 text-5xl font-light leading-tight md:text-7xl">
                 Beauty Rooted in <br />
-                <span className="italic">Tradition</span>
+                <span className="font-bold">Tradition</span>
               </h1>
               <p className="max-w-lg mb-10 text-lg text-gray-600">
                 Experience the fusion of ancient beauty rituals with modern minimalist design. 
@@ -64,7 +65,7 @@ const HeroSection = () => {
               {/* Main floating image */}
               <div className="relative overflow-hidden shadow-2xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=2070&auto=format&fit=crop" 
+                  src={OilImg}
                   alt="Cultural beauty product arrangement"
                   className="object-cover w-full h-[500px]"
                 />

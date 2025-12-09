@@ -11,12 +11,19 @@ function App() {
     <div>
       <BrowserRouter>
         <Toaster />
-        <Routes path="/*">
-          <Route path="/*" element={<HomePage />}></Route>
-          <Route path="/login" element={<LoginPage />}></Route>
-          <Route path="/signup" element={<SigninPage />}></Route>
-          <Route path="/admin/*" element={<AdminHomePage />}></Route>
-          <Route path="/*" element={<HomePage />}></Route>
+        <Routes>
+          {/* All public routes go through HomePage */}
+          <Route path="/*" element={<HomePage />} />
+          
+          {/* Auth pages without Layout */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SigninPage />} />
+          
+          {/* Admin routes */}
+          <Route path="/admin/*" element={<AdminHomePage />} />
+          
+          {/* Catch-all redirect to home */}
+          <Route path="*" element={<HomePage />} />
         </Routes>
       </BrowserRouter>
     </div>
@@ -24,4 +31,3 @@ function App() {
 }
 
 export default App;
-//VITE_BACKEND_URL =https://cbc-backend-ps3j.onrender.com
