@@ -26,7 +26,7 @@ export default function ProductPage() {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeCategory, setActiveCategory] = useState(category || "all");
+  const [activeCategory, setActiveCategory] = useState("all");
   const [viewMode, setViewMode] = useState("grid");
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("featured");
@@ -37,6 +37,29 @@ export default function ProductPage() {
     benefits: [],
     scentFamily: []
   });
+
+  // Helper function to extract category from URL path
+  const getCategoryFromPath = (pathname) => {
+    const parts = pathname.split('/').filter(part => part.trim() !== '');
+    
+    console.log("Path parts:", parts);
+    
+    // If we're at /shop or /shop/, it's "all"
+    if (parts.length === 1 && parts[0] === 'shop') {
+      console.log("Detected 'all' category from path");
+      return 'all';
+    }
+    
+    // If we're at /shop/:category, return the category
+    if (parts.length === 2 && parts[0] === 'shop') {
+      const categoryFromPath = parts[1];
+      console.log(`Detected category from path: ${categoryFromPath}`);
+      return categoryFromPath;
+    }
+    
+    console.log("Defaulting to 'all' category");
+    return 'all';
+  };
 
   // Dummy data for products
   const dummyProducts = [
@@ -175,22 +198,32 @@ export default function ProductPage() {
 
   // Load products on component mount
   useEffect(() => {
+    console.log("ProductPage mounted");
     setLoading(true);
     setTimeout(() => {
       setProducts(dummyProducts);
       setLoading(false);
+      console.log("Products loaded:", dummyProducts.length);
     }, 500);
   }, []);
 
+  // Debug: Log when location changes
+  useEffect(() => {
+    console.log("Location changed:", location);
+    console.log("Category param from useParams():", category);
+    console.log("Current pathname:", location.pathname);
+  }, [location, category]);
+
   // Update activeCategory when URL changes
   useEffect(() => {
-    if (category) {
-      setActiveCategory(category);
-      // Scroll to top when category changes
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      setActiveCategory("all");
-    }
+    console.log("=== URL CHANGE DETECTED ===");
+    console.log("Pathname:", location.pathname);
+    console.log("Category param:", category);
+    
+    const categoryFromPath = getCategoryFromPath(location.pathname);
+    console.log("Setting activeCategory to:", categoryFromPath);
+    
+    setActiveCategory(categoryFromPath);
     
     // Reset search when category changes
     setSearchQuery("");
@@ -201,34 +234,59 @@ export default function ProductPage() {
       benefits: [],
       scentFamily: []
     });
-  }, [category, location.pathname]);
+    
+    // Scroll to top when category changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [location.pathname, category]);
+
+  // Debug: Log when activeCategory changes
+  useEffect(() => {
+    console.log("activeCategory changed to:", activeCategory);
+  }, [activeCategory]);
 
   // Filter and sort products whenever dependencies change
   useEffect(() => {
+    console.log("=== FILTERING PRODUCTS ===");
+    console.log("Active category:", activeCategory);
+    console.log("Sort by:", sortBy);
+    console.log("Search query:", searchQuery);
+    console.log("Applied filters:", appliedFilters);
+    console.log("Total products:", products.length);
+    
     filterAndSortProducts();
   }, [activeCategory, sortBy, searchQuery, appliedFilters, products]);
 
   const filterAndSortProducts = () => {
+    console.log("Running filterAndSortProducts function");
     let filtered = [...products];
 
     // 1. Filter by category
     if (activeCategory !== "all") {
+      console.log(`Filtering by category: ${activeCategory}`);
       filtered = filtered.filter(product => 
         product.category?.toLowerCase() === activeCategory.toLowerCase()
       );
+      console.log(`Products after category filter: ${filtered.length}`);
+    } else {
+      console.log("Showing all products (no category filter)");
     }
 
     // 2. Filter by search query
     if (searchQuery) {
+      console.log(`Filtering by search query: ${searchQuery}`);
+      const originalCount = filtered.length;
       filtered = filtered.filter(product =>
         product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.category?.toLowerCase().includes(searchQuery.toLowerCase())
       );
+      console.log(`Products after search filter: ${filtered.length} (removed ${originalCount - filtered.length})`);
     }
 
     // 3. Apply price filters
     if (appliedFilters.price.length > 0) {
+      console.log(`Applying price filters: ${appliedFilters.price.join(', ')}`);
+      const originalCount = filtered.length;
       filtered = filtered.filter(product => {
         const price = product.lastPrice || product.price;
         return appliedFilters.price.some(filter => {
@@ -241,27 +299,38 @@ export default function ProductPage() {
           }
         });
       });
+      console.log(`Products after price filter: ${filtered.length} (removed ${originalCount - filtered.length})`);
     }
 
     // 4. Apply skin type filters for skincare
     if (activeCategory === "skincare" && appliedFilters.skinType.length > 0) {
+      console.log(`Applying skin type filters: ${appliedFilters.skinType.join(', ')}`);
       // This is a dummy filter - in a real app, you would have skinType property in product data
+      const originalCount = filtered.length;
       filtered = filtered.filter((_, index) => index % 2 === 0); // Dummy logic
+      console.log(`Products after skin type filter: ${filtered.length} (removed ${originalCount - filtered.length})`);
     }
 
     // 5. Apply scent family filters for perfumes
     if (activeCategory === "perfumes" && appliedFilters.scentFamily.length > 0) {
+      console.log(`Applying scent family filters: ${appliedFilters.scentFamily.join(', ')}`);
       // This is a dummy filter - in a real app, you would have scentFamily property in product data
+      const originalCount = filtered.length;
       filtered = filtered.filter((_, index) => index % 2 === 0); // Dummy logic
+      console.log(`Products after scent family filter: ${filtered.length} (removed ${originalCount - filtered.length})`);
     }
 
     // 6. Apply benefits filters
     if (appliedFilters.benefits.length > 0) {
+      console.log(`Applying benefits filters: ${appliedFilters.benefits.join(', ')}`);
       // This is a dummy filter - in a real app, you would have benefits property in product data
+      const originalCount = filtered.length;
       filtered = filtered.filter((_, index) => index % 2 === 0); // Dummy logic
+      console.log(`Products after benefits filter: ${filtered.length} (removed ${originalCount - filtered.length})`);
     }
 
     // 7. Sort products
+    console.log(`Sorting products by: ${sortBy}`);
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "price-low":
@@ -277,14 +346,18 @@ export default function ProductPage() {
       }
     });
 
+    console.log("Final filtered products count:", filtered.length);
     setFilteredProducts(filtered);
   };
 
   const handleCategoryClick = (categoryId) => {
+    console.log(`Category clicked: ${categoryId}`);
     setActiveCategory(categoryId);
     if (categoryId === "all") {
+      console.log("Navigating to /shop");
       navigate("/shop");
     } else {
+      console.log(`Navigating to /shop/${categoryId}`);
       navigate(`/shop/${categoryId}`);
     }
     setSearchQuery("");
@@ -298,6 +371,7 @@ export default function ProductPage() {
   };
 
   const handleFilterChange = (filterType, value) => {
+    console.log(`Filter change: ${filterType} - ${value}`);
     setAppliedFilters(prev => {
       const currentFilters = [...prev[filterType]];
       const index = currentFilters.indexOf(value);
@@ -305,19 +379,25 @@ export default function ProductPage() {
       if (index > -1) {
         // Remove filter if already selected
         currentFilters.splice(index, 1);
+        console.log(`Removed filter ${value} from ${filterType}`);
       } else {
         // Add filter if not selected
         currentFilters.push(value);
+        console.log(`Added filter ${value} to ${filterType}`);
       }
       
-      return {
+      const newFilters = {
         ...prev,
         [filterType]: currentFilters
       };
+      
+      console.log("Updated filters:", newFilters);
+      return newFilters;
     });
   };
 
   const clearFilters = () => {
+    console.log("Clearing all filters");
     setActiveCategory("all");
     setSearchQuery("");
     setSortBy("featured");
@@ -341,6 +421,13 @@ export default function ProductPage() {
       </div>
     );
   }
+
+  console.log("Rendering ProductPage with:", {
+    activeCategory,
+    filteredProductsLength: filteredProducts.length,
+    showFilters,
+    viewMode
+  });
 
   return (
     <div className="min-h-screen bg-white">
@@ -371,7 +458,7 @@ export default function ProductPage() {
                activeCategory === "skincare" ? "Radiant Skincare" :
                activeCategory === "makeup" ? "Luxurious Makeup" :
                activeCategory === "tools" ? "Ritual Tools" : 
-               "Ancient Wisdom"}, Modern Science
+               "Ancient Wisdom, Modern Science"}
             </h1>
             <p className="max-w-3xl mx-auto mb-8 text-xl text-gray-700">
               {activeCategory === "perfumes" ? "Discover rare and exotic fragrances that tell stories of ancient cultures" :
@@ -409,13 +496,19 @@ export default function ProductPage() {
                 <input
                   type="search"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    console.log("Search query changed:", e.target.value);
+                    setSearchQuery(e.target.value);
+                  }}
                   placeholder={`Search ${activeCategory === "all" ? "all products" : activeCategory}...`}
                   className="w-full py-3 pl-10 pr-10 text-sm border border-gray-200 rounded-lg bg-white/90 backdrop-blur-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black focus:bg-white"
                 />
                 {searchQuery && (
                   <button
-                    onClick={() => setSearchQuery("")}
+                    onClick={() => {
+                      console.log("Clearing search query");
+                      setSearchQuery("");
+                    }}
                     className="absolute inset-y-0 right-0 flex items-center pr-3 transition-colors hover:text-gray-600"
                   >
                     <X className="w-5 h-5 text-gray-400" />
@@ -449,7 +542,10 @@ export default function ProductPage() {
             </div>
 
             <button
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => {
+                console.log("Show filters toggled:", !showFilters);
+                setShowFilters(!showFilters);
+              }}
               className="items-center hidden gap-2 px-4 py-2 text-sm font-light text-gray-600 transition-colors border border-gray-200 rounded-lg md:flex hover:border-black"
             >
               <Filter className="w-4 h-4" />
@@ -591,7 +687,10 @@ export default function ProductPage() {
                 </div>
 
                 <button 
-                  onClick={() => setShowFilters(false)}
+                  onClick={() => {
+                    console.log("Apply filters clicked");
+                    setShowFilters(false);
+                  }}
                   className="w-full py-3 text-sm font-light tracking-wider text-white transition-colors bg-black rounded-lg hover:bg-gray-800"
                 >
                   Apply Filters ({Object.values(appliedFilters).flat().length})
@@ -617,13 +716,19 @@ export default function ProductPage() {
                 {/* View Toggle */}
                 <div className="flex items-center gap-1 p-1 border border-gray-200 rounded-lg bg-gray-50">
                   <button
-                    onClick={() => setViewMode("grid")}
+                    onClick={() => {
+                      console.log("Setting view mode to grid");
+                      setViewMode("grid");
+                    }}
                     className={`p-2 rounded transition-colors ${viewMode === "grid" ? "bg-white shadow-sm" : "hover:bg-white/50"}`}
                   >
                     <Grid className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => setViewMode("list")}
+                    onClick={() => {
+                      console.log("Setting view mode to list");
+                      setViewMode("list");
+                    }}
                     className={`p-2 rounded transition-colors ${viewMode === "list" ? "bg-white shadow-sm" : "hover:bg-white/50"}`}
                   >
                     <List className="w-4 h-4" />
@@ -634,7 +739,10 @@ export default function ProductPage() {
                 <div className="relative">
                   <select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
+                    onChange={(e) => {
+                      console.log("Sort by changed to:", e.target.value);
+                      setSortBy(e.target.value);
+                    }}
                     className="py-2 pl-4 pr-8 text-sm font-light text-gray-600 bg-white border border-gray-200 rounded-lg appearance-none focus:outline-none focus:border-black"
                   >
                     <option value="featured">Featured</option>
@@ -739,7 +847,10 @@ export default function ProductPage() {
 
       {/* Mobile Filters Button */}
       <button
-        onClick={() => setShowFilters(!showFilters)}
+        onClick={() => {
+          console.log("Mobile filters toggled:", !showFilters);
+          setShowFilters(!showFilters);
+        }}
         className="fixed z-50 flex items-center gap-2 px-4 py-3 text-sm font-light text-white transition-all bg-black rounded-full shadow-lg bottom-6 right-6 md:hidden hover:bg-gray-800"
       >
         <Sliders className="w-4 h-4" />
