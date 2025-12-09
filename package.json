@@ -10,8 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ant-design/charts": "^2.6.6",
+    "@ant-design/icons": "^6.1.0",
     "@material-tailwind/react": "^2.1.10",
     "@supabase/supabase-js": "^2.47.10",
+    "antd": "^6.1.0",
     "axios": "^1.7.9",
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.475.0",
