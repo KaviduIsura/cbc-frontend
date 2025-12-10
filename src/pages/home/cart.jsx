@@ -438,29 +438,56 @@ export default function Cart() {
           </div>
 
           {/* Cart Preview */}
-          <div>
-            <h4 className="mb-3 text-sm font-medium text-gray-700">Items that will be removed:</h4>
-            <div className="space-y-2 overflow-y-auto max-h-48">
-              {cart.items.slice(0, 5).map((item) => (
-                <div key={item._id} className="flex items-center gap-3 p-2 border border-gray-100 rounded">
-                  <img
-                    src={item.image || "https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop"}
-                    alt={item.name}
-                    className="w-10 h-10 rounded"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{item.name}</p>
-                    <p className="text-xs text-gray-500">{item.quantity} × ${item.price.toFixed(2)}</p>
-                  </div>
-                </div>
-              ))}
-              {cart.items.length > 5 && (
-                <div className="text-sm text-center text-gray-500">
-                  ...and {cart.items.length - 5} more items
-                </div>
-              )}
-            </div>
+{/* Cart Preview */}
+<div>
+  <h4 className="mb-3 text-sm font-medium text-gray-700">Items that will be removed:</h4>
+  <div className="space-y-2 overflow-y-auto max-h-48">
+    {cart.items.slice(0, 5).map((item) => {
+      // Simple inline image component with retry logic
+      const CartPreviewImage = ({ src, alt }) => {
+        const [errorCount, setErrorCount] = useState(0);
+        const [imgSrc, setImgSrc] = useState(src);
+        const placeholder = 'https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop';
+
+        const handleError = () => {
+          if (errorCount < 2) {
+            setErrorCount(prev => prev + 1);
+            // Try reloading with cache bust
+            setImgSrc(src + (src.includes('?') ? '&' : '?') + `t=${Date.now()}`);
+          } else {
+            // Use placeholder after 3 attempts
+            setImgSrc(placeholder);
+          }
+        };
+
+        return (
+          <img
+            src={imgSrc || placeholder}
+            alt={alt}
+            className="w-10 h-10 rounded"
+            onError={handleError}
+            loading="lazy"
+          />
+        );
+      };
+
+      return (
+        <div key={item._id} className="flex items-center gap-3 p-2 border border-gray-100 rounded">
+          <CartPreviewImage src={item.image} alt={item.name} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{item.name}</p>
+            <p className="text-xs text-gray-500">{item.quantity} × ${item.price.toFixed(2)}</p>
           </div>
+        </div>
+      );
+    })}
+    {cart.items.length > 5 && (
+      <div className="text-sm text-center text-gray-500">
+        ...and {cart.items.length - 5} more items
+      </div>
+    )}
+  </div>
+</div>
 
           {/* Alternative Options */}
           <div className="p-4 border border-gray-200 rounded-lg">

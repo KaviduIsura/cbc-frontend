@@ -1,7 +1,7 @@
 // src/components/CartCard.jsx
 import { motion } from "framer-motion";
 import { Trash2, Plus, Minus, Heart, Star, Check, Package, ArrowRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Modal from "./Modal";
 
 const CartCard = ({ 
@@ -16,6 +16,92 @@ const CartCard = ({
   const [isWishlisting, setIsWishlisting] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  
+  // Image handling states
+  const [imageErrorCount, setImageErrorCount] = useState(0);
+  const [currentImage, setCurrentImage] = useState('');
+  const [modalImageErrorCount, setModalImageErrorCount] = useState(0);
+  const [currentModalImage, setCurrentModalImage] = useState('');
+  
+  // Refs
+  const imgRef = useRef(null);
+  const modalImgRef = useRef(null);
+
+  // Placeholder image
+  const placeholderImage = 'https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop';
+
+  // Initialize images
+  useEffect(() => {
+    const initialImage = item.image || placeholderImage;
+    setCurrentImage(initialImage);
+    setCurrentModalImage(initialImage);
+  }, [item.image]);
+
+  // Handle main image error with retry logic
+  const handleImageError = (e) => {
+    console.log(`Main image error count: ${imageErrorCount + 1} for item: ${item.id}`);
+    
+    if (imageErrorCount < 2) {
+      // Try reloading the image
+      setImageErrorCount(prev => prev + 1);
+      
+      // Create a new image object to force reload with cache busting
+      const img = new Image();
+      img.onload = () => {
+        // If the image loads successfully on retry, update the source
+        const newSrc = currentImage + (currentImage.includes('?') ? '&' : '?') + `t=${Date.now()}`;
+        setCurrentImage(newSrc);
+      };
+      img.onerror = () => {
+        // If retry fails, fall back to placeholder after 2 attempts
+        if (imageErrorCount >= 1) {
+          console.log('Max retry attempts reached for main image, using placeholder');
+          setCurrentImage(placeholderImage);
+        }
+      };
+      img.src = currentImage + (currentImage.includes('?') ? '&' : '?') + `t=${Date.now()}`;
+    } else {
+      // After 3 failed attempts, use placeholder
+      console.log('Using placeholder image for main image');
+      setCurrentImage(placeholderImage);
+    }
+  };
+
+  // Handle modal image error with retry logic
+  const handleModalImageError = (e) => {
+    console.log(`Modal image error count: ${modalImageErrorCount + 1} for item: ${item.id}`);
+    
+    if (modalImageErrorCount < 2) {
+      // Try reloading the image
+      setModalImageErrorCount(prev => prev + 1);
+      
+      // Create a new image object to force reload with cache busting
+      const img = new Image();
+      img.onload = () => {
+        // If the image loads successfully on retry, update the source
+        const newSrc = currentModalImage + (currentModalImage.includes('?') ? '&' : '?') + `t=${Date.now()}`;
+        setCurrentModalImage(newSrc);
+      };
+      img.onerror = () => {
+        // If retry fails, fall back to placeholder after 2 attempts
+        if (modalImageErrorCount >= 1) {
+          console.log('Max retry attempts reached for modal image, using placeholder');
+          setCurrentModalImage(placeholderImage);
+        }
+      };
+      img.src = currentModalImage + (currentModalImage.includes('?') ? '&' : '?') + `t=${Date.now()}`;
+    } else {
+      // After 3 failed attempts, use placeholder
+      console.log('Using placeholder image for modal image');
+      setCurrentModalImage(placeholderImage);
+    }
+  };
+
+  // Reset image error counts when item changes
+  useEffect(() => {
+    setImageErrorCount(0);
+    setModalImageErrorCount(0);
+  }, [item.id]);
 
   // Calculate item total
   const itemTotal = (item.price * item.quantity).toFixed(2);
@@ -105,12 +191,12 @@ const CartCard = ({
           <div className="relative flex-shrink-0">
             <div className="relative w-32 h-32 overflow-hidden rounded-lg bg-gray-50">
               <img
-                src={item.image || "https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop"}
+                ref={imgRef}
+                src={currentImage}
                 alt={item.name}
                 className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-                onError={(e) => {
-                  e.target.src = "https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop";
-                }}
+                onError={handleImageError}
+                loading="lazy"
               />
               
               {/* Badges */}
@@ -357,9 +443,11 @@ const CartCard = ({
         <div className="space-y-4">
           <div className="flex items-center gap-4 p-4 rounded-lg bg-gray-50">
             <img
-              src={item.image || "https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop"}
+              src={currentModalImage}
               alt={item.name}
               className="w-16 h-16 rounded-lg"
+              onError={handleModalImageError}
+              loading="lazy"
             />
             <div>
               <h3 className="font-medium">{item.name}</h3>
@@ -390,9 +478,11 @@ const CartCard = ({
         <div className="space-y-4">
           <div className="flex items-center gap-4 p-4 rounded-lg bg-gray-50">
             <img
-              src={item.image || "https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop"}
+              src={currentModalImage}
               alt={item.name}
               className="w-16 h-16 rounded-lg"
+              onError={handleModalImageError}
+              loading="lazy"
             />
             <div>
               <h3 className="font-medium">{item.name}</h3>

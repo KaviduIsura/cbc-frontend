@@ -1,7 +1,7 @@
 // src/components/ProductCard.jsx
 import { motion } from 'framer-motion';
 import { Heart, Star } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { addToCartAPI } from '../utils/cartApi';
@@ -9,10 +9,55 @@ import { addToCartAPI } from '../utils/cartApi';
 const ProductCard = ({ product, index }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [imageErrorCount, setImageErrorCount] = useState(0);
+  const [currentImage, setCurrentImage] = useState('');
+  const imgRef = useRef(null);
   const navigate = useNavigate();
 
   // Determine the product ID for routing and cart
   const productId = product._id || product.productId || product.id;
+
+  // Initial image source
+  const initialImage = product.image || product.images?.[0] || 'https://nftcalendar.io/storage/uploads/2022/02/21/image-not-found_0221202211372462137974b6c1a.png';
+
+  // Placeholder image
+  const placeholderImage = 'https://nftcalendar.io/storage/uploads/2022/02/21/image-not-found_0221202211372462137974b6c1a.png';
+
+  // Initialize current image
+  useEffect(() => {
+    setCurrentImage(initialImage);
+  }, [initialImage]);
+
+  // Handle image error with retry logic
+  const handleImageError = (e) => {
+    console.log(`Image error count: ${imageErrorCount + 1} for product: ${productId}`);
+    
+    if (imageErrorCount < 2) {
+      // Try reloading the image
+      setImageErrorCount(prev => prev + 1);
+      
+      // Create a new image object to force reload
+      const img = new Image();
+      img.onload = () => {
+        // If the image loads successfully on retry, update the source
+        if (imgRef.current) {
+          imgRef.current.src = currentImage;
+        }
+      };
+      img.onerror = () => {
+        // If retry fails, fall back to placeholder
+        if (imageErrorCount >= 1) { // After 2 attempts
+          console.log(`Failed to load image after ${imageErrorCount + 1} attempts, using placeholder`);
+          setCurrentImage(placeholderImage);
+        }
+      };
+      img.src = currentImage + (currentImage.includes('?') ? '&' : '?') + `t=${Date.now()}`;
+    } else {
+      // After 3 failed attempts, use placeholder
+      console.log('Max retry attempts reached, using placeholder image');
+      setCurrentImage(placeholderImage);
+    }
+  };
 
   // Format price
   const formatPrice = (price) => {
@@ -38,7 +83,7 @@ const ProductCard = ({ product, index }) => {
         id: productId,
         name: product.name || product.productName,
         price: product.lastPrice || product.price,
-        image: product.image || product.images?.[0],
+        image: currentImage, // Use current image
         category: product.category
       });
       toast.success('Added to wishlist');
@@ -84,6 +129,12 @@ const ProductCard = ({ product, index }) => {
     }
   };
 
+  // Reset image error count when product changes
+  useEffect(() => {
+    setImageErrorCount(0);
+    setCurrentImage(initialImage);
+  }, [product._id, initialImage]);
+
   // If no product ID, render non-clickable card
   if (!productId) {
     return (
@@ -105,9 +156,12 @@ const ProductCard = ({ product, index }) => {
         {/* Image */}
         <div className="mb-4 overflow-hidden rounded-lg aspect-square bg-gray-50">
           <img
-            src={product.image || product.images?.[0] || 'https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop'}
+            ref={imgRef}
+            src={currentImage}
             alt={product.name || product.productName}
             className="object-cover w-full h-full"
+            onError={handleImageError}
+            loading="lazy"
           />
         </div>
 
@@ -205,14 +259,14 @@ const ProductCard = ({ product, index }) => {
         {/* Image */}
         <div className="mb-4 overflow-hidden rounded-lg aspect-square bg-gray-50">
           <motion.img
-            whileHover={{ scale: 1.05 }}
-            transition={{ duration: 0.4 }}
-            src={product.image || product.images?.[0] || 'https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop'}
+            ref={imgRef}
+            src={currentImage}
             alt={product.name || product.productName}
             className="object-cover w-full h-full"
-            onError={(e) => {
-              e.target.src = 'https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop';
-            }}
+            onError={handleImageError}
+            loading="lazy"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.4 }}
           />
         </div>
 
