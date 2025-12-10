@@ -823,7 +823,7 @@ const LandingPage = () => {
               dermatological research. Each product is a testament to cultural
               heritage, reimagined for the contemporary ritual.
             </p>
-            <Link to="/about">
+            <Link to="/story">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

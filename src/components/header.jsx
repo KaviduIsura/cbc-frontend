@@ -1,9 +1,9 @@
 // src/components/Navbar.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, ShoppingBag, Heart, Menu, X, ChevronDown, User, LogOut, Settings, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext'; // Import the context
+import { useCart } from '../context/CartContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,8 +17,8 @@ const Navbar = () => {
   // Use the cart context
   const { cartCount, fetchCartCount } = useCart();
 
-  useEffect(() => {
-    // Check both token and user in localStorage
+  // Function to update user state from localStorage
+  const updateUserFromStorage = useCallback(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     
@@ -26,7 +26,6 @@ const Navbar = () => {
       try {
         setIsLoggedIn(true);
         setUser(JSON.parse(storedUser));
-        // Fetch cart count when user logs in
         fetchCartCount();
       } catch (error) {
         console.error('Error parsing user data:', error);
@@ -42,31 +41,32 @@ const Navbar = () => {
     }
   }, [fetchCartCount]);
 
-  // Listen for storage changes (for login/logout from other tabs)
+  // Initial load and event listeners
   useEffect(() => {
+    updateUserFromStorage();
+
+    // Listen for storage changes (for login/logout from other tabs)
     const handleStorageChange = () => {
-      const token = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-      
-      if (token && storedUser) {
-        try {
-          setIsLoggedIn(true);
-          setUser(JSON.parse(storedUser));
-          fetchCartCount(); // Fetch cart when user logs in
-        } catch (error) {
-          console.error('Error parsing user data:', error);
-          setIsLoggedIn(false);
-          setUser(null);
-        }
-      } else {
-        setIsLoggedIn(false);
-        setUser(null);
+      updateUserFromStorage();
+    };
+
+    // Listen for custom user update events
+    const handleUserUpdateEvent = (event) => {
+      console.log('User update event received:', event.detail);
+      if (event.detail) {
+        setUser(event.detail);
+        localStorage.setItem('user', JSON.stringify(event.detail));
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [fetchCartCount]);
+    window.addEventListener('userUpdated', handleUserUpdateEvent);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userUpdated', handleUserUpdateEvent);
+    };
+  }, [updateUserFromStorage]);
 
   // Listen for cart update events
   useEffect(() => {
@@ -115,8 +115,8 @@ const Navbar = () => {
     // Navigate to home
     navigate('/');
     
-    // Optional: Show logout success message
-    // toast.success('Logged out successfully');
+    // Dispatch logout event
+    window.dispatchEvent(new CustomEvent('userUpdated', { detail: null }));
   };
 
   useEffect(() => {
@@ -203,20 +203,10 @@ const Navbar = () => {
     return null;
   };
 
-  // Function to trigger cart update from other components
-  const triggerCartUpdate = () => {
-    if (isLoggedIn) {
-      fetchCartCount();
-    }
+  // Manually trigger user update (for testing)
+  const refreshUserData = () => {
+    updateUserFromStorage();
   };
-
-  // Expose function to window for other components to use
-  useEffect(() => {
-    window.triggerCartUpdate = triggerCartUpdate;
-    return () => {
-      delete window.triggerCartUpdate;
-    };
-  }, [isLoggedIn]);
 
   return (
     <nav 
@@ -322,6 +312,10 @@ const Navbar = () => {
                         src={getUserProfilePic()} 
                         alt={getUserName()}
                         className="object-cover w-8 h-8 rounded-full"
+                        onError={(e) => {
+                          // Fallback to initial if image fails to load
+                          e.target.style.display = 'none';
+                        }}
                       />
                     ) : (
                       <div className="flex items-center justify-center w-8 h-8 text-sm text-white bg-black rounded-full">

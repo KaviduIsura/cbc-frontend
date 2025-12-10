@@ -16,6 +16,7 @@ import Wishlist from "./home/Wishlist";
 import Checkout from "./home/Checkout";
 import MyOrders from "./home/MyOrders";
 import OrderDetails from "./home/OrderDetails";
+import AccountPage from './home/AccountPage'
 
 export default function HomePage() {
   return (
@@ -55,7 +56,8 @@ export default function HomePage() {
           <Route path="argan" element={<ArganPage />} />
           <Route path="sandalwood" element={<SandalwoodPage />} />
         </Route>
-
+        
+        <Route path="/account" element={<AccountPage />} />
         {/* Fallback route - 404 */}
         <Route
           path="*"

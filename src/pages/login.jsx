@@ -32,13 +32,9 @@ export default function LoginPage() {
         setIsLoading(false);
         console.log("Login response:", res.data); // Debug log
         
-        // Check for successful login - handle different response formats
-        if (res.data.message && (
-            res.data.message === "User logged in successfully" || 
-            res.data.message === "User Logged in" ||
-            res.data.message.toLowerCase().includes("logged in")
-        )) {
-          toast.success("Welcome back!");
+        // Check for successful login - updated to handle new response format
+        if (res.data.success === true) {
+          toast.success(res.data.message || "Welcome back!");
           localStorage.setItem("token", res.data.token);
           localStorage.setItem("user", JSON.stringify(res.data.user));
           
@@ -48,16 +44,13 @@ export default function LoginPage() {
           } else {
             navigate("/");
           }
-        } else if (res.data.message === "User Not found" || res.data.message === "User not found") {
-          toast.error("No account found with this email");
-        } else if (res.data.message && res.data.message.includes("Invalid Password")) {
-          toast.error("Incorrect password");
-        } else if (res.data.message && res.data.message.includes("blocked")) {
-          toast.error("Account is blocked. Please contact administrator.");
-        } else if (res.data.message) {
-          toast.error(res.data.message);
         } else {
-          toast.error("Login failed - No response message");
+          // Handle cases where success is false or not present
+          if (res.data.message) {
+            toast.error(res.data.message);
+          } else {
+            toast.error("Login failed - Please try again");
+          }
         }
       })
       .catch((error) => {
@@ -70,7 +63,9 @@ export default function LoginPage() {
           console.error("Response data:", error.response.data);
           console.error("Response status:", error.response.status);
           
-          if (error.response.status === 401) {
+          if (error.response.data?.success === false) {
+            toast.error(error.response.data.message || "Login failed");
+          } else if (error.response.status === 401) {
             toast.error("Invalid email or password");
           } else if (error.response.status === 403) {
             toast.error("Account is blocked. Please contact administrator.");
@@ -199,7 +194,7 @@ export default function LoginPage() {
             >
               {isLoading ? (
                 <span className="flex items-center">
-                  <svg className="w-5 h-5 mr-3 -ml-1 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 mr-3 -ml-1 text-white animate-spin" xmlns="http://www.w3.org2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -273,8 +268,9 @@ export default function LoginPage() {
 
             {/* Demo Account Info */}
             <div className="p-4 mt-6 text-xs text-gray-500 rounded-lg bg-gray-50">
-              <p className="mb-1 font-medium">Debug Mode - Check Console</p>
-              <p>Use: johndoe@example.com / securepassword123</p>
+              <p className="mb-1 font-medium">Demo Account</p>
+              <p>Email: kavidu100@example.com</p>
+              <p>Password: securepassword123</p>
             </div>
 
             {/* Terms */}
