@@ -21,6 +21,7 @@ import {
 import ProductCard from "../../components/ProductCard";
 import axios from "axios";
 import toast from "react-hot-toast";
+import ProdImg from '../../assets/products.jpg'
 
 export default function ProductPage() {
   const { category } = useParams();
@@ -266,11 +267,11 @@ export default function ProductPage() {
       <section className="relative py-24 overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src="https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1920&auto=format&fit=crop"
+            src={ProdImg}
             alt="Products background"
             className="object-cover w-full h-full"
           />
-          <div className="absolute inset-0 bg-white/80"></div>
+          <div className="absolute inset-0 bg-white/30"></div>
         </div>
         
         <div className="container relative px-6 mx-auto">

@@ -5,10 +5,12 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import SigninPage from "./pages/signPage";
 import AdminHomePage from "./pages/adminHomePage";
 import { Toaster } from "react-hot-toast";
+import { CartProvider } from './context/CartContext';
 
 function App() {
   return (
     <div>
+      <CartProvider>
       <BrowserRouter>
         <Toaster />
         <Routes>
@@ -26,6 +28,7 @@ function App() {
           <Route path="*" element={<HomePage />} />
         </Routes>
       </BrowserRouter>
+      </CartProvider>
     </div>
   );
 }

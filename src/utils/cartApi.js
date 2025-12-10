@@ -8,6 +8,17 @@ const getAuthToken = () => {
   return localStorage.getItem('token');
 };
 
+// Function to trigger cart update event
+export const triggerCartUpdate = () => {
+  // Dispatch custom event for cart updates
+  window.dispatchEvent(new Event('cartUpdated'));
+  
+  // Also update localStorage for cross-tab communication
+  const cartUpdateCount = parseInt(localStorage.getItem('cartUpdateCount') || '0') + 1;
+  localStorage.setItem('cartUpdateCount', cartUpdateCount.toString());
+  localStorage.setItem('lastCartUpdate', new Date().toISOString());
+};
+
 // Add item to cart via API
 export const addToCartAPI = async (productId, quantity = 1) => {
   try {
@@ -31,6 +42,9 @@ export const addToCartAPI = async (productId, quantity = 1) => {
         }
       }
     );
+
+    // Trigger cart update on success
+    triggerCartUpdate();
 
     return {
       success: true,
@@ -83,6 +97,9 @@ export const updateCartItemAPI = async (itemId, quantity) => {
       }
     );
 
+    // Trigger cart update on success
+    triggerCartUpdate();
+
     return {
       success: true,
       message: response.data.message,
@@ -117,6 +134,9 @@ export const removeCartItemAPI = async (itemId) => {
         }
       }
     );
+
+    // Trigger cart update on success
+    triggerCartUpdate();
 
     return {
       success: true,
@@ -216,6 +236,9 @@ export const clearCartAPI = async () => {
         }
       }
     );
+
+    // Trigger cart update on success
+    triggerCartUpdate();
 
     return {
       success: true,

@@ -1,7 +1,9 @@
+// src/components/Navbar.jsx
 import { useState, useEffect } from 'react';
 import { Search, ShoppingBag, Heart, Menu, X, ChevronDown, User, LogOut, Settings, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
+import { useCart } from '../context/CartContext'; // Import the context
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,6 +13,9 @@ const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  
+  // Use the cart context
+  const { cartCount, fetchCartCount } = useCart();
 
   useEffect(() => {
     // Check both token and user in localStorage
@@ -21,6 +26,8 @@ const Navbar = () => {
       try {
         setIsLoggedIn(true);
         setUser(JSON.parse(storedUser));
+        // Fetch cart count when user logs in
+        fetchCartCount();
       } catch (error) {
         console.error('Error parsing user data:', error);
         // Clear invalid data
@@ -33,7 +40,7 @@ const Navbar = () => {
       setIsLoggedIn(false);
       setUser(null);
     }
-  }, []);
+  }, [fetchCartCount]);
 
   // Listen for storage changes (for login/logout from other tabs)
   useEffect(() => {
@@ -45,6 +52,7 @@ const Navbar = () => {
         try {
           setIsLoggedIn(true);
           setUser(JSON.parse(storedUser));
+          fetchCartCount(); // Fetch cart when user logs in
         } catch (error) {
           console.error('Error parsing user data:', error);
           setIsLoggedIn(false);
@@ -58,7 +66,21 @@ const Navbar = () => {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [fetchCartCount]);
+
+  // Listen for cart update events
+  useEffect(() => {
+    const handleCartUpdateEvent = () => {
+      if (isLoggedIn) {
+        fetchCartCount();
+      }
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdateEvent);
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdateEvent);
+    };
+  }, [isLoggedIn, fetchCartCount]);
 
   const handleLogin = () => {
     navigate('/login');
@@ -86,6 +108,9 @@ const Navbar = () => {
     setUser(null);
     setUserProfileDropdown(false);
     setIsMenuOpen(false);
+    
+    // Reset cart count
+    fetchCartCount();
     
     // Navigate to home
     navigate('/');
@@ -178,6 +203,21 @@ const Navbar = () => {
     return null;
   };
 
+  // Function to trigger cart update from other components
+  const triggerCartUpdate = () => {
+    if (isLoggedIn) {
+      fetchCartCount();
+    }
+  };
+
+  // Expose function to window for other components to use
+  useEffect(() => {
+    window.triggerCartUpdate = triggerCartUpdate;
+    return () => {
+      delete window.triggerCartUpdate;
+    };
+  }, [isLoggedIn]);
+
   return (
     <nav 
       className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white/80 backdrop-blur-sm'}`}
@@ -253,9 +293,15 @@ const Navbar = () => {
             {isLoggedIn && (
               <button className="relative transition-colors hover:text-gray-600" aria-label="Shopping cart" onClick={handleCart}>
                 <ShoppingBag className="w-5 h-5" />
-                <span className="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-black rounded-full -top-2 -right-2">
-                  0 {/* You can update this with actual cart count */}
-                </span>
+                {cartCount > 0 && (
+                  <motion.span 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-black rounded-full -top-2 -right-2"
+                  >
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </motion.span>
+                )}
               </button>
             )}
             
@@ -335,6 +381,11 @@ const Navbar = () => {
                           <Heart className="w-4 h-4" />
                           Wishlist
                         </Link>
+                        
+                        <div className="flex items-center gap-2 px-4 py-2 text-sm font-light">
+                          <ShoppingBag className="w-4 h-4" />
+                          Cart ({cartCount} items)
+                        </div>
                         
                         <Link 
                           to="/settings" 
@@ -465,6 +516,9 @@ const Navbar = () => {
                       >
                         Wishlist
                       </Link>
+                      <div className="block text-sm font-light">
+                        Cart ({cartCount} items)
+                      </div>
                       {user?.type === 'admin' && (
                         <Link 
                           to="/admin" 
