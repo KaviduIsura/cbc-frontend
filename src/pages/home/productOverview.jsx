@@ -1,3 +1,4 @@
+// src/home/productOverview.jsx
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -21,10 +22,11 @@ import {
   Leaf,
   Loader
 } from "lucide-react";
+import { addToCartAPI } from "../../utils/cartApi";
 
 export default function ProductOverview() {
   const params = useParams();
-  const productId = params.id; // This should be productId from your backend
+  const productId = params.id;
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [status, setStatus] = useState("loading");
@@ -32,20 +34,19 @@ export default function ProductOverview() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Transform backend product data to match frontend format
+  // Transform backend product data
   const transformProductData = (backendProduct) => {
-    // If product already has variants, use them
     if (backendProduct.variants && backendProduct.variants.length > 0) {
       return backendProduct;
     }
     
-    // Otherwise create a single variant from the product data
     const variants = [
       { 
         id: 1, 
@@ -61,13 +62,9 @@ export default function ProductOverview() {
       productName: backendProduct.productName || backendProduct.name,
       description: backendProduct.description || "",
       longDescription: backendProduct.detailedDescription || backendProduct.description || "",
-      // Map benefits to include all benefit types
       benefits: backendProduct.benefits || [],
-      // Ensure features array exists
       features: backendProduct.features || [],
-      // Ensure ingredients array exists (you might want to add this to your model)
       ingredients: backendProduct.ingredients || [],
-      // Ensure howToUse array exists (you might want to add this to your model)
       howToUse: backendProduct.howToUse || [
         "Apply as directed on packaging",
         "Use consistently for best results",
@@ -76,7 +73,6 @@ export default function ProductOverview() {
       shippingInfo: "Free shipping on orders over $75. Ships within 1-2 business days.",
       returnPolicy: "30-day return policy. Full refund if not satisfied.",
       inStock: backendProduct.stock > 0,
-      // Ensure images array is properly formatted
       images: backendProduct.images && backendProduct.images.length > 0 
         ? backendProduct.images 
         : ["https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop"]
@@ -87,7 +83,6 @@ export default function ProductOverview() {
     const fetchProduct = async () => {
       setStatus("loading");
       try {
-        // Fetch product from backend API
         const response = await axios.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/products/${productId}`
         );
@@ -112,53 +107,47 @@ export default function ProductOverview() {
     }
   }, [productId]);
 
-  const addToCart = () => {
-    if (!product) return;
+  // Add to cart using API
+  const addToCart = async () => {
+    if (!product || !selectedVariant) return;
     
-    const item = {
-      id: product._id,
-      productId: product.productId,
-      name: product.productName,
-      price: selectedVariant.price,
-      variant: selectedVariant.name,
-      quantity: quantity,
-      image: product.images && product.images.length > 0 ? product.images[0] : ""
-    };
+    setIsAddingToCart(true);
     
-    // Add to local storage or state management
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    
-    // Check if item already exists in cart
-    const existingItemIndex = cart.findIndex(
-      cartItem => 
-        cartItem.id === item.id && 
-        cartItem.variant === item.variant
-    );
-    
-    if (existingItemIndex > -1) {
-      // Update quantity if item exists
-      cart[existingItemIndex].quantity += quantity;
-    } else {
-      // Add new item
-      cart.push(item);
+    try {
+      // Use the product's MongoDB _id as productId
+      const productId = product._id;
+      
+      const result = await addToCartAPI(productId, quantity);
+      
+      if (result.success) {
+        toast.success(`${quantity} × ${product.productName} added to cart`);
+        // Navigate to cart page
+        navigate('/cart');
+      } else {
+        if (result.requiresLogin) {
+          toast.error('Please login to add items to cart');
+          // Optionally redirect to login
+          // navigate('/login');
+        } else {
+          toast.error(result.message || 'Failed to add item to cart');
+        }
+      }
+    } catch (error) {
+      toast.error('An error occurred while adding to cart');
+    } finally {
+      setIsAddingToCart(false);
     }
-    
-    localStorage.setItem('cart', JSON.stringify(cart));
-    
-    toast.success(`${quantity} × ${product.productName} (${selectedVariant.name}) added to cart`);
-    navigate('/cart');
   };
 
+  // Add to wishlist
   const addToWishlist = () => {
     if (!product) return;
     
     setIsLiked(!isLiked);
     
-    // Get wishlist from localStorage
     const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
     
     if (!isLiked) {
-      // Add to wishlist
       const wishlistItem = {
         id: product._id,
         productId: product.productId,
@@ -168,7 +157,6 @@ export default function ProductOverview() {
         category: product.category
       };
       
-      // Check if already in wishlist
       const exists = wishlist.some(item => item.id === wishlistItem.id);
       
       if (!exists) {
@@ -177,7 +165,6 @@ export default function ProductOverview() {
         toast.success(`${product.productName} added to wishlist`);
       }
     } else {
-      // Remove from wishlist
       const updatedWishlist = wishlist.filter(item => item.id !== product._id);
       localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
       toast.success(`${product.productName} removed from wishlist`);
@@ -241,8 +228,8 @@ export default function ProductOverview() {
             <ChevronRight className="w-4 h-4 mx-2" />
             <Link to="/shop" className="transition-colors hover:text-gray-700">Shop</Link>
             <ChevronRight className="w-4 h-4 mx-2" />
-            <Link to={`/shop/${product.category.toLowerCase()}`} className="transition-colors hover:text-gray-700">
-              {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
+            <Link to={`/shop/${product.category?.toLowerCase()}`} className="transition-colors hover:text-gray-700">
+              {product.category ? product.category.charAt(0).toUpperCase() + product.category.slice(1) : 'Products'}
             </Link>
             <ChevronRight className="w-4 h-4 mx-2" />
             <span className="max-w-xs text-gray-900 truncate">{product.productName}</span>
@@ -331,13 +318,13 @@ export default function ProductOverview() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-light tracking-wider text-gray-500 uppercase">
-                  {product.category}
+                  {product.category || 'Product'}
                 </span>
                 <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                 {product.inStock ? (
                   <div className="flex items-center gap-1 text-sm text-green-600">
                     <Check className="w-4 h-4" />
-                    <span>In Stock ({product.stock} available)</span>
+                    <span>In Stock ({product.stock || 0} available)</span>
                   </div>
                 ) : (
                   <span className="text-sm text-red-500">Out of Stock</span>
@@ -350,9 +337,9 @@ export default function ProductOverview() {
                     <Star
                       key={i}
                       className={`w-4 h-4 ${
-                        i < Math.floor(product.rating) 
+                        i < Math.floor(product.rating || 0) 
                           ? "fill-amber-400 text-amber-400" 
-                          : i < product.rating
+                          : i < (product.rating || 0)
                           ? "fill-amber-400 text-amber-400 opacity-50"
                           : "text-gray-200"
                       }`}
@@ -360,7 +347,7 @@ export default function ProductOverview() {
                   ))}
                 </div>
                 <span className="text-sm text-gray-500">
-                  {product.rating.toFixed(1)} ({product.reviewCount || 0} reviews)
+                  {(product.rating || 0).toFixed(1)} ({product.reviewCount || 0} reviews)
                 </span>
               </div>
             </div>
@@ -456,21 +443,33 @@ export default function ProductOverview() {
 
               <div className="flex gap-4">
                 <motion.button
-                  whileHover={product.inStock ? { scale: 1.02 } : {}}
-                  whileTap={product.inStock ? { scale: 0.98 } : {}}
+                  whileHover={product.inStock && !isAddingToCart ? { scale: 1.02 } : {}}
+                  whileTap={product.inStock && !isAddingToCart ? { scale: 0.98 } : {}}
                   onClick={addToCart}
-                  disabled={!product.inStock}
+                  disabled={!product.inStock || isAddingToCart}
                   className={`flex items-center justify-center flex-1 gap-2 py-4 text-sm font-light tracking-wider text-white rounded-lg transition-colors ${
-                    product.inStock 
+                    product.inStock && !isAddingToCart
                       ? 'bg-black hover:bg-gray-800' 
                       : 'bg-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  <ShoppingBag className="w-5 h-5" />
-                  {product.inStock 
-                    ? `Add to Ritual - ${(selectedVariant.price * quantity).toFixed(2)}`
-                    : 'Out of Stock'
-                  }
+                  {isAddingToCart ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Adding...
+                    </span>
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-5 h-5" />
+                      {product.inStock 
+                        ? `Add to Ritual - $${(selectedVariant.price * quantity).toFixed(2)}`
+                        : 'Out of Stock'
+                      }
+                    </>
+                  )}
                 </motion.button>
                 
                 <button
@@ -548,7 +547,7 @@ export default function ProductOverview() {
               </div>
             </div>
 
-            {/* Ingredients - Only show if we have ingredients */}
+            {/* Ingredients */}
             {product.ingredients && product.ingredients.length > 0 && (
               <div>
                 <h2 className="flex items-center gap-2 mb-4 text-xl font-light">
@@ -572,7 +571,7 @@ export default function ProductOverview() {
 
           {/* Right Column */}
           <div className="space-y-8">
-            {/* Benefits - Only show if we have benefits */}
+            {/* Benefits */}
             {product.benefits && product.benefits.length > 0 && (
               <div>
                 <h2 className="mb-4 text-xl font-light">Benefits</h2>
@@ -589,7 +588,7 @@ export default function ProductOverview() {
               </div>
             )}
 
-            {/* Features - Only show if we have features */}
+            {/* Features */}
             {product.features && product.features.length > 0 && (
               <div>
                 <h2 className="flex items-center gap-2 mb-4 text-xl font-light">

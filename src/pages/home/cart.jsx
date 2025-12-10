@@ -1,89 +1,6 @@
-// import { useEffect, useState } from "react";
-// import { loadCart } from "../../utils/cartFunction";
-// import CartCard from "../../components/cartCard";
-// import axios from "axios";
-
-// export default function Cart() {
-//   const [cart, setCart] = useState([]);
-// const[total,setTotal]=useState(0)
-// const [labelTotal,setLabelTotal]=useState(0)
-
-
-//   useEffect(() => {
-//     const cartData = loadCart();
-//     setCart(cartData);
-//     axios.post(import.meta.env.VITE_BACKEND_URL+"/api/orders/quote",
-//         {
-//             orderedItems: loadCart()
-//         }
-//     ).then(
-//         (res)=>{
-//             console.log(res.data);
-//             setTotal(res.data.total)
-//             setLabelTotal(res.data.labelTotal)
-//         }
-//     )
-//   }, []);
-
-//   function onOrderCheckOutClick(){
-//     const token = localStorage.getItem("token")
-//     if(token == null){
-//         return
-//     }
-
-//     axios.post(import.meta.env.VITE_BACKEND_URL+"/api/orders",
-
-//         {
-//             orderedItems:cart,
-//             name:"Kavidu isura",
-//             address:"badulla",
-//             phone:"0776479026"
-//         },
-//         {
-//             headers: {
-//               Authorization: "Bearer " + token,
-//             },
-//           }
-//     ).then(
-//         (res)=>{
-//             console.log(res.data);
-//         }
-//     )
-
-//   }
-//   return (
-//     <div className="flex flex-col items-end w-full h-full overflow-y-scroll">
-//         <table className="w-full">
-// <thead>
-//     <th>Image</th>
-//     <th>Product Name</th>
-//     <th>Product Id</th>
-//     <th>Quantity</th>
-//     <th>Price</th>
-//     <th>Total</th>
-// </thead>
-
-        
-//       {cart.map((item) => {
-//         return (
-//           <CartCard
-//             key={item.productId}
-//             productId={item.productId}
-//             qty={item.qty}
-//           />
-//         );
-//       })}
-//       </table>
-//       <h1 className="text-3xl font-bold text-accent">Total : LKR {labelTotal.toFixed(2)}</h1>
-//       <h1 className="text-3xl font-bold text-accent">Discount : LKR {(labelTotal-total).toFixed(2)}</h1>
-//       <h1 className="text-3xl font-bold text-accent">Grand Total : LKR {total.toFixed(2)}</h1>
-//       <button className="bg-accent text-white p-2 rounded-lg w-[300px] hover:bg-accent_light hover:text-black " onClick={onOrderCheckOutClick}>Checkout</button>
-//     </div>
-//   );
-// }
-
-
+// src/home/cart.jsx
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   ShoppingBag,
   Trash2,
@@ -99,65 +16,47 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import CartCard from "../../components/cartCard";
+import { getCartAPI, updateCartItemAPI, removeCartItemAPI, clearCartAPI } from "../../utils/cartApi";
+import toast from "react-hot-toast";
 
 export default function Cart() {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(null);
   const [subtotal, setSubtotal] = useState(0);
   const [shipping, setShipping] = useState(0);
   const [tax, setTax] = useState(0);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Dummy cart data
-  const dummyCartItems = [
-    {
-      id: 1,
-      productId: "PER001",
-      name: "Sacred Oud Eau de Parfum",
-      category: "Perfume",
-      price: 189,
-      originalPrice: 220,
-      image: "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=1140&auto=format&fit=crop",
-      quantity: 1,
-      inStock: true,
-      isNew: true
-    },
-    {
-      id: 2,
-      productId: "SKI002",
-      name: "Golden Saffron Elixir Serum",
-      category: "Skincare",
-      price: 145,
-      image: "https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop",
-      quantity: 2,
-      inStock: true,
-      isBestSeller: true
-    },
-    {
-      id: 3,
-      productId: "SKI003",
-      name: "Maroccan Argan Night Cream",
-      category: "Skincare",
-      price: 98,
-      originalPrice: 120,
-      image: "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?q=80&w=1140&auto=format&fit=crop",
-      quantity: 1,
-      inStock: true
-    }
-  ];
+  const [isClearing, setIsClearing] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate loading cart data
-    setIsLoading(true);
-    setTimeout(() => {
-      setCart(dummyCartItems);
-      calculateTotals(dummyCartItems);
-      setIsLoading(false);
-    }, 500);
+    fetchCart();
   }, []);
 
-  const calculateTotals = (items) => {
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const fetchCart = async () => {
+    setIsLoading(true);
+    try {
+      const result = await getCartAPI();
+      
+      if (result.success && result.cart) {
+        setCart(result.cart);
+        calculateTotals(result.cart);
+      } else {
+        // If user is not logged in or cart is empty
+        setCart({ items: [], total: 0 });
+        calculateTotals({ items: [], total: 0 });
+      }
+    } catch (error) {
+      toast.error("Failed to load cart");
+      setCart({ items: [], total: 0 });
+      calculateTotals({ items: [], total: 0 });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const calculateTotals = (cartData) => {
+    const subtotal = cartData.total || 0;
     const shipping = subtotal > 75 ? 0 : 8.95;
     const tax = subtotal * 0.08; // 8% tax
     const total = subtotal + shipping + tax;
@@ -168,41 +67,93 @@ export default function Cart() {
     setTotal(total);
   };
 
-  const updateQuantity = (id, newQuantity) => {
+  const updateQuantity = async (itemId, newQuantity) => {
     if (newQuantity < 1) return;
     
-    const updatedCart = cart.map(item => 
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    );
-    setCart(updatedCart);
-    calculateTotals(updatedCart);
+    try {
+      const result = await updateCartItemAPI(itemId, newQuantity);
+      
+      if (result.success) {
+        setCart(result.cart);
+        calculateTotals(result.cart);
+        toast.success("Cart updated");
+      } else {
+        toast.error(result.message || "Failed to update cart");
+      }
+    } catch (error) {
+      toast.error("Error updating cart");
+    }
   };
 
-  const removeItem = (id) => {
-    const updatedCart = cart.filter(item => item.id !== id);
-    setCart(updatedCart);
-    calculateTotals(updatedCart);
+  const removeItem = async (itemId) => {
+    try {
+      const result = await removeCartItemAPI(itemId);
+      
+      if (result.success) {
+        setCart(result.cart);
+        calculateTotals(result.cart);
+        toast.success("Item removed from cart");
+      } else {
+        toast.error(result.message || "Failed to remove item");
+      }
+    } catch (error) {
+      toast.error("Error removing item");
+    }
   };
 
-  const moveToWishlist = (id) => {
-    // In a real app, this would move item to wishlist
-    const item = cart.find(item => item.id === id);
-    alert(`Moved ${item.name} to wishlist`);
-    removeItem(id);
+  const moveToWishlist = (itemId) => {
+    const item = cart.items.find(item => item._id === itemId);
+    if (item) {
+      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      wishlist.push({
+        id: item.productId?._id || item.productId,
+        name: item.name,
+        price: item.price,
+        image: item.image,
+        category: item.category
+      });
+      localStorage.setItem('wishlist', JSON.stringify(wishlist));
+      toast.success(`Moved ${item.name} to wishlist`);
+      removeItem(itemId);
+    }
+  };
+
+  const handleClearCart = async () => {
+    if (window.confirm("Are you sure you want to clear your cart?")) {
+      setIsClearing(true);
+      try {
+        const result = await clearCartAPI();
+        
+        if (result.success) {
+          setCart({ items: [], total: 0 });
+          calculateTotals({ items: [], total: 0 });
+          toast.success("Cart cleared");
+        } else {
+          toast.error(result.message || "Failed to clear cart");
+        }
+      } catch (error) {
+        toast.error("Error clearing cart");
+      } finally {
+        setIsClearing(false);
+      }
+    }
   };
 
   const handleCheckout = () => {
-    setIsLoading(true);
-    // Simulate checkout process
-    setTimeout(() => {
-      alert("Checkout successful! Redirecting to payment...");
-      setIsLoading(false);
-    }, 1000);
+    if (!cart || cart.items.length === 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
+    
+    // Navigate to checkout or process payment
+    // navigate('/checkout');
+    toast.success("Proceeding to checkout...");
   };
 
-  if (isLoading && cart.length === 0) {
+  // Loading state
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh] pt-20"> {/* Added pt-20 */}
+      <div className="flex items-center justify-center min-h-[60vh] pt-20">
         <div className="text-center">
           <div className="w-8 h-8 mx-auto mb-4 border-2 border-gray-300 rounded-full border-t-black animate-spin"></div>
           <p className="text-sm font-light text-gray-500">Loading your cart...</p>
@@ -211,9 +162,10 @@ export default function Cart() {
     );
   }
 
-  if (cart.length === 0 && !isLoading) {
+  // Empty cart state
+  if (!cart || !cart.items || cart.items.length === 0) {
     return (
-      <div className="min-h-screen pt-20 bg-white"> {/* Added pt-20 */}
+      <div className="min-h-screen pt-20 bg-white">
         <div className="container px-6 py-20 mx-auto">
           <div className="max-w-md mx-auto text-center">
             <div className="flex justify-center mb-6">
@@ -226,7 +178,7 @@ export default function Cart() {
               Add some beautiful products to begin your ritual journey
             </p>
             <Link
-              to="/products"
+              to="/shop/all"
               className="inline-flex items-center px-6 py-3 text-sm font-light text-white transition-colors bg-black rounded-lg hover:bg-gray-800"
             >
               Continue Shopping
@@ -239,21 +191,34 @@ export default function Cart() {
   }
 
   return (
-    <div className="min-h-screen pt-20 bg-white"> {/* Added pt-20 */}
+    <div className="min-h-screen pt-20 bg-white">
       {/* Hero */}
       <div className="py-12 bg-gray-50">
         <div className="container px-6 mx-auto">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="mb-2 text-4xl font-light">Your Cart</h1>
-              <p className="text-gray-600">{cart.length} items</p>
+              <p className="text-gray-600">
+                {cart.items.length} item{cart.items.length !== 1 ? 's' : ''}
+              </p>
             </div>
-            <Link
-              to="/products"
-              className="text-sm font-light text-gray-500 hover:text-black"
-            >
-              Continue Shopping →
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                to="/shop/all"
+                className="text-sm font-light text-gray-500 hover:text-black"
+              >
+                Continue Shopping →
+              </Link>
+              {cart.items.length > 0 && (
+                <button
+                  onClick={handleClearCart}
+                  disabled={isClearing}
+                  className="text-sm font-light text-red-500 hover:text-red-600 disabled:opacity-50"
+                >
+                  {isClearing ? 'Clearing...' : 'Clear Cart'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -261,24 +226,39 @@ export default function Cart() {
       <div className="container px-6 py-12 mx-auto">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
           {/* Cart Items */}
-         <div className="lg:col-span-2">
-  <div className="space-y-6">
-    {cart.map((item, index) => (
-      <CartCard
-        key={item.id}
-        item={item}
-        index={index}
-        onUpdateQuantity={updateQuantity}
-        onRemove={removeItem}
-        onMoveToWishlist={moveToWishlist}
-      />
-    ))}
-  </div>
-  </div>
+          <div className="lg:col-span-2">
+            <div className="space-y-6">
+              {cart.items.map((item, index) => (
+                <CartCard
+                  key={item._id}
+                  item={{
+                    id: item._id,
+                    productId: item.productId?._id || item.productId,
+                    name: item.name,
+                    category: item.category,
+                    price: item.price,
+                    originalPrice: item.originalPrice,
+                    lastPrice: item.lastPrice,
+                    image: item.image,
+                    quantity: item.quantity,
+                    inStock: true,
+                    rating: 4.5,
+                    reviewCount: 87,
+                    isNew: true,
+                    isBestSeller: false
+                  }}
+                  index={index}
+                  onUpdateQuantity={updateQuantity}
+                  onRemove={removeItem}
+                  onMoveToWishlist={moveToWishlist}
+                />
+              ))}
+            </div>
+          </div>
 
           {/* Order Summary */}
           <div>
-            <div className="sticky top-36"> {/* Changed from top-24 to top-36 */}
+            <div className="sticky top-36">
               <div className="p-6 border border-gray-100 rounded-lg">
                 <h2 className="mb-6 text-xl font-light">Order Summary</h2>
                 
@@ -336,23 +316,10 @@ export default function Cart() {
                 {/* Checkout Button */}
                 <button
                   onClick={handleCheckout}
-                  disabled={isLoading}
-                  className="flex items-center justify-center w-full px-6 py-3 text-sm font-light tracking-wider text-white transition-colors bg-black rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center w-full px-6 py-3 text-sm font-light tracking-wider text-white transition-colors bg-black rounded-lg hover:bg-gray-800"
                 >
-                  {isLoading ? (
-                    <span className="flex items-center">
-                      <svg className="w-5 h-5 mr-3 -ml-1 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : (
-                    <span className="flex items-center">
-                      Proceed to Checkout
-                      <ChevronRight className="w-4 h-4 ml-2" />
-                    </span>
-                  )}
+                  Proceed to Checkout
+                  <ChevronRight className="w-4 h-4 ml-2" />
                 </button>
 
                 {/* Payment Methods */}
