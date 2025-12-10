@@ -33,6 +33,7 @@ import {
   DeleteOutlined,
   EyeOutlined
 } from "@ant-design/icons";
+import uploadMediaToSupabase from "../../utils/mediaUpload";
 
 const { Step } = Steps;
 const { TextArea } = Input;
@@ -50,6 +51,7 @@ export default function EditProductForm() {
   const [product, setProduct] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [categories, setCategories] = useState([]);
+  const [formData, setFormData] = useState({}); // Store form data
 
   // If product is passed via state (from admin product page)
   const productFromState = location.state?.product;
@@ -93,8 +95,8 @@ export default function EditProductForm() {
   const loadProductData = (productData) => {
     setProduct(productData);
     
-    // Set form values
-    form.setFieldsValue({
+    // Convert arrays to comma-separated strings for form
+    const formattedData = {
       productName: productData.productName || productData.name,
       name: productData.name || productData.productName,
       category: productData.category || 'all',
@@ -109,12 +111,18 @@ export default function EditProductForm() {
       isNew: productData.isNew || false,
       isBestSeller: productData.isBestSeller || false,
       altNames: productData.altNames ? productData.altNames.join(', ') : '',
-      features: productData.features || [''],
+      features: productData.features || [],
       benefits: productData.benefits || [],
       skinType: productData.skinType || [],
       scentFamily: productData.scentFamily || [],
       tags: productData.tags ? productData.tags.join(', ') : '',
-    });
+    };
+    
+    // Set form values
+    form.setFieldsValue(formattedData);
+    
+    // Update formData state
+    setFormData(formattedData);
     
     // Set images
     setImageList(productData.images || []);
@@ -190,12 +198,9 @@ export default function EditProductForm() {
   const handleImageUpload = async (file) => {
     setUploading(true);
     try {
-      // If you have an uploadMediaToSupabase function
-      // const imageUrl = await uploadMediaToSupabase(file);
-      // For now, we'll use a placeholder
-      const imageUrl = URL.createObjectURL(file);
+      const imageUrl = await uploadMediaToSupabase(file);
       setImageList(prev => [...prev, imageUrl]);
-      return false;
+      return false; // Prevent default upload
     } catch (error) {
       console.error("Upload error:", error);
       toast.error("Failed to upload image");
@@ -211,32 +216,56 @@ export default function EditProductForm() {
     setImageList(newList);
   };
 
+  // Handle form field changes
+  const handleFormChange = (changedValues, allValues) => {
+    setFormData(prev => ({
+      ...prev,
+      ...changedValues
+    }));
+  };
+
+  const next = () => {
+    // Collect current form data before moving to next step
+    const currentValues = form.getFieldsValue();
+    setFormData(prev => ({ ...prev, ...currentValues }));
+    setCurrentStep(currentStep + 1);
+  };
+
+  const prev = () => {
+    setCurrentStep(currentStep - 1);
+  };
+
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      // Prepare update data
+      // Combine formData with current form values
+      const finalData = { ...formData, ...values };
+      
+      // Prepare update data - ensure proper format
       const updateData = {
-        productName: values.productName,
-        name: values.name || values.productName,
-        category: values.category,
-        price: values.price,
-        originalPrice: values.originalPrice,
-        lastPrice: values.lastPrice || values.price,
-        stock: values.stock,
-        description: values.description,
-        detailedDescription: values.detailedDescription,
-        rating: values.rating || 0,
-        reviewCount: values.reviewCount || 0,
-        isNew: values.isNew || false,
-        isBestSeller: values.isBestSeller || false,
+        productName: finalData.productName,
+        name: finalData.name || finalData.productName,
+        category: finalData.category,
+        price: finalData.price,
+        originalPrice: finalData.originalPrice,
+        lastPrice: finalData.lastPrice || finalData.price,
+        stock: finalData.stock,
+        description: finalData.description,
+        detailedDescription: finalData.detailedDescription,
+        rating: finalData.rating || 0,
+        reviewCount: finalData.reviewCount || 0,
+        isNew: finalData.isNew || false,
+        isBestSeller: finalData.isBestSeller || false,
         images: imageList,
-        altNames: values.altNames ? values.altNames.split(',').map(name => name.trim()) : [],
-        features: (values.features || []).filter(feature => feature.trim() !== ''),
-        benefits: values.benefits || [],
-        skinType: values.skinType || [],
-        scentFamily: values.scentFamily || [],
-        tags: values.tags ? values.tags.split(',').map(tag => tag.trim()) : []
+        altNames: finalData.altNames ? finalData.altNames.split(',').map(name => name.trim()) : [],
+        features: (finalData.features || []).filter(feature => feature && feature.trim() !== ''),
+        benefits: finalData.benefits || [],
+        skinType: finalData.skinType || [],
+        scentFamily: finalData.scentFamily || [],
+        tags: finalData.tags ? finalData.tags.split(',').map(tag => tag.trim()) : []
       };
+
+      console.log("Update data being sent:", updateData);
 
       const token = localStorage.getItem("token");
       const response = await axios.put(
@@ -285,14 +314,6 @@ export default function EditProductForm() {
     }
   };
 
-  const next = () => {
-    setCurrentStep(currentStep + 1);
-  };
-
-  const prev = () => {
-    setCurrentStep(currentStep - 1);
-  };
-
   const renderStepContent = () => {
     if (loadingProduct) {
       return (
@@ -324,6 +345,9 @@ export default function EditProductForm() {
                   <Input 
                     placeholder="Enter product name" 
                     size="large"
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, productName: e.target.value }));
+                    }}
                   />
                 </Form.Item>
               </Col>
@@ -336,6 +360,9 @@ export default function EditProductForm() {
                   <Input 
                     placeholder="Optional display name" 
                     size="large"
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, name: e.target.value }));
+                    }}
                   />
                 </Form.Item>
               </Col>
@@ -346,13 +373,48 @@ export default function EditProductForm() {
                   name="category"
                   rules={[{ required: true, message: 'Please select category' }]}
                 >
-                  <Select size="large">
+                  <Select 
+                    size="large"
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, category: value }));
+                    }}
+                  >
                     {categoryOptions.map(option => (
                       <Option key={option.value} value={option.value}>
                         {option.label}
                       </Option>
                     ))}
                   </Select>
+                </Form.Item>
+              </Col>
+
+              <Col span={24}>
+                <Form.Item
+                  label="Alternative Names"
+                  name="altNames"
+                >
+                  <Input 
+                    placeholder="e.g., Alternative 1, Alternative 2 (comma separated)"
+                    size="large"
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, altNames: e.target.value }));
+                    }}
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col span={24}>
+                <Form.Item
+                  label="Tags"
+                  name="tags"
+                >
+                  <Input 
+                    placeholder="e.g., premium, natural, luxury (comma separated)"
+                    size="large"
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, tags: e.target.value }));
+                    }}
+                  />
                 </Form.Item>
               </Col>
             </Row>
@@ -379,6 +441,9 @@ export default function EditProductForm() {
                     step={0.01}
                     formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                     parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, price: value }));
+                    }}
                   />
                 </Form.Item>
               </Col>
@@ -395,6 +460,9 @@ export default function EditProductForm() {
                     step={0.01}
                     formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                     parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, originalPrice: value }));
+                    }}
                   />
                 </Form.Item>
               </Col>
@@ -411,6 +479,9 @@ export default function EditProductForm() {
                     step={0.01}
                     formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                     parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, lastPrice: value }));
+                    }}
                   />
                 </Form.Item>
               </Col>
@@ -428,6 +499,43 @@ export default function EditProductForm() {
                     style={{ width: '100%' }}
                     size="large"
                     min={0}
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, stock: value }));
+                    }}
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label="Rating"
+                  name="rating"
+                >
+                  <InputNumber 
+                    style={{ width: '100%' }}
+                    size="large"
+                    min={0}
+                    max={5}
+                    step={0.1}
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, rating: value }));
+                    }}
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={8}>
+                <Form.Item
+                  label="Review Count"
+                  name="reviewCount"
+                >
+                  <InputNumber 
+                    style={{ width: '100%' }}
+                    size="large"
+                    min={0}
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, reviewCount: value }));
+                    }}
                   />
                 </Form.Item>
               </Col>
@@ -442,6 +550,9 @@ export default function EditProductForm() {
                     rows={3}
                     placeholder="Brief description for product cards"
                     size="large"
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, description: e.target.value }));
+                    }}
                   />
                 </Form.Item>
               </Col>
@@ -455,6 +566,9 @@ export default function EditProductForm() {
                     rows={6}
                     placeholder="Full product description for detail page"
                     size="large"
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, detailedDescription: e.target.value }));
+                    }}
                   />
                 </Form.Item>
               </Col>
@@ -533,11 +647,44 @@ export default function EditProductForm() {
                 </div>
               </Upload>
             </Form.Item>
+
+            <Form.List name="features">
+              {(fields, { add, remove }) => (
+                <div className="space-y-4">
+                  <Divider orientation="left">Features</Divider>
+                  {fields.map((field, index) => (
+                    <Space key={field.key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                      <Form.Item
+                        {...field}
+                        rules={[{ required: false, message: 'Feature is required' }]}
+                      >
+                        <Input 
+                          placeholder={`Feature ${index + 1}`} 
+                          onChange={(e) => {
+                            const newFeatures = [...(formData.features || [])];
+                            newFeatures[index] = e.target.value;
+                            setFormData(prev => ({ ...prev, features: newFeatures }));
+                          }}
+                        />
+                      </Form.Item>
+                      <MinusCircleOutlined onClick={() => {
+                        const newFeatures = (formData.features || []).filter((_, i) => i !== index);
+                        setFormData(prev => ({ ...prev, features: newFeatures }));
+                        remove(field.name);
+                      }} />
+                    </Space>
+                  ))}
+                  <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                    Add Feature
+                  </Button>
+                </div>
+              )}
+            </Form.List>
           </Card>
         );
         
       case 3:
-        const category = form.getFieldValue('category');
+        const category = formData.category || form.getFieldValue('category');
         
         return (
           <Card className="shadow-sm">
@@ -551,6 +698,9 @@ export default function EditProductForm() {
                     mode="multiple"
                     placeholder="Select benefits"
                     size="large"
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, benefits: value }));
+                    }}
                   >
                     {benefitsOptions.map(option => (
                       <Option key={option.value} value={option.value}>
@@ -571,6 +721,9 @@ export default function EditProductForm() {
                       mode="multiple"
                       placeholder="Select suitable skin types"
                       size="large"
+                      onChange={(value) => {
+                        setFormData(prev => ({ ...prev, skinType: value }));
+                      }}
                     >
                       {skinTypeOptions.map(option => (
                         <Option key={option.value} value={option.value}>
@@ -592,6 +745,9 @@ export default function EditProductForm() {
                       mode="multiple"
                       placeholder="Select scent families"
                       size="large"
+                      onChange={(value) => {
+                        setFormData(prev => ({ ...prev, scentFamily: value }));
+                      }}
                     >
                       {scentFamilyOptions.map(option => (
                         <Option key={option.value} value={option.value}>
@@ -612,7 +768,11 @@ export default function EditProductForm() {
                       name="isNew"
                       valuePropName="checked"
                     >
-                      <Switch />
+                      <Switch 
+                        onChange={(checked) => {
+                          setFormData(prev => ({ ...prev, isNew: checked }));
+                        }}
+                      />
                     </Form.Item>
                   </Col>
                   
@@ -622,7 +782,11 @@ export default function EditProductForm() {
                       name="isBestSeller"
                       valuePropName="checked"
                     >
-                      <Switch />
+                      <Switch 
+                        onChange={(checked) => {
+                          setFormData(prev => ({ ...prev, isBestSeller: checked }));
+                        }}
+                      />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -632,7 +796,9 @@ export default function EditProductForm() {
         );
         
       case 4:
-        const formValues = form.getFieldsValue();
+        // Combine formData with any new changes
+        const currentValues = form.getFieldsValue();
+        const reviewData = { ...formData, ...currentValues };
         
         return (
           <Card className="shadow-sm">
@@ -646,21 +812,114 @@ export default function EditProductForm() {
             
             <Descriptions title="Product Information" bordered column={2}>
               <Descriptions.Item label="Product ID">{product?.productId}</Descriptions.Item>
-              <Descriptions.Item label="Product Name">{formValues.productName}</Descriptions.Item>
-              <Descriptions.Item label="Category">{formValues.category}</Descriptions.Item>
-              <Descriptions.Item label="Display Name">{formValues.name || 'Not set'}</Descriptions.Item>
-              <Descriptions.Item label="Price">${formValues.price}</Descriptions.Item>
-              <Descriptions.Item label="Original Price">${formValues.originalPrice || 'Same as price'}</Descriptions.Item>
-              <Descriptions.Item label="Stock">{formValues.stock}</Descriptions.Item>
+              <Descriptions.Item label="Product Name">
+                {reviewData.productName || <Tag color="red">Not set</Tag>}
+              </Descriptions.Item>
+              <Descriptions.Item label="Category">
+                {reviewData.category || <Tag color="red">Not set</Tag>}
+              </Descriptions.Item>
+              <Descriptions.Item label="Display Name">
+                {reviewData.name || reviewData.productName || 'Same as Product Name'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Price">
+                ${reviewData.price || <Tag color="red">Not set</Tag>}
+              </Descriptions.Item>
+              <Descriptions.Item label="Original Price">
+                ${reviewData.originalPrice || reviewData.price || 'Same as price'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Stock">
+                {reviewData.stock || <Tag color="red">Not set</Tag>}
+              </Descriptions.Item>
+              <Descriptions.Item label="Short Description">
+                {reviewData.description ? (
+                  <div className="p-1 overflow-y-auto max-h-20">
+                    {reviewData.description}
+                  </div>
+                ) : (
+                  <Tag color="red">Not set</Tag>
+                )}
+              </Descriptions.Item>
               <Descriptions.Item label="Status">
                 <Space>
-                  {formValues.isNew && <Tag color="green">NEW</Tag>}
-                  {formValues.isBestSeller && <Tag color="red">BEST SELLER</Tag>}
+                  {reviewData.isNew && <Tag color="green">NEW</Tag>}
+                  {reviewData.isBestSeller && <Tag color="red">BEST SELLER</Tag>}
+                  {!reviewData.isNew && !reviewData.isBestSeller && <Tag>Regular</Tag>}
                 </Space>
               </Descriptions.Item>
-              <Descriptions.Item label="Images" span={2}>
-                {imageList.length} image(s)
+              <Descriptions.Item label="Rating">
+                {reviewData.rating || '0'} / 5.0
               </Descriptions.Item>
+              <Descriptions.Item label="Review Count">
+                {reviewData.reviewCount || '0'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Images" span={2}>
+                {imageList.length > 0 ? (
+                  <div>
+                    <Tag color="blue">{imageList.length} image(s)</Tag>
+                    <div className="mt-2">
+                      {imageList.slice(0, 3).map((img, index) => (
+                        <img 
+                          key={index} 
+                          src={img} 
+                          alt={`Preview ${index + 1}`} 
+                          className="inline-block object-cover w-12 h-12 mr-2 rounded"
+                        />
+                      ))}
+                      {imageList.length > 3 && (
+                        <Tag className="ml-2">+{imageList.length - 3} more</Tag>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <Tag color="orange">No images</Tag>
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="Features" span={2}>
+                {reviewData.features?.length > 0 ? (
+                  <ul className="pl-5 list-disc">
+                    {reviewData.features.map((feature, index) => (
+                      <li key={index}>{feature}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <Tag>No features</Tag>
+                )}
+              </Descriptions.Item>
+              <Descriptions.Item label="Benefits" span={2}>
+                {reviewData.benefits?.length > 0 ? (
+                  <div>
+                    {reviewData.benefits.map((benefit, index) => (
+                      <Tag key={index} color="green" className="mb-1 mr-1">
+                        {benefit}
+                      </Tag>
+                    ))}
+                  </div>
+                ) : (
+                  <Tag>No benefits</Tag>
+                )}
+              </Descriptions.Item>
+              {reviewData.skinType?.length > 0 && (
+                <Descriptions.Item label="Skin Types" span={2}>
+                  <div>
+                    {reviewData.skinType.map((type, index) => (
+                      <Tag key={index} color="cyan" className="mb-1 mr-1">
+                        {type}
+                      </Tag>
+                    ))}
+                  </div>
+                </Descriptions.Item>
+              )}
+              {reviewData.scentFamily?.length > 0 && (
+                <Descriptions.Item label="Scent Family" span={2}>
+                  <div>
+                    {reviewData.scentFamily.map((scent, index) => (
+                      <Tag key={index} color="magenta" className="mb-1 mr-1">
+                        {scent}
+                      </Tag>
+                    ))}
+                  </div>
+                </Descriptions.Item>
+              )}
             </Descriptions>
           </Card>
         );
@@ -725,15 +984,7 @@ export default function EditProductForm() {
         form={form}
         layout="vertical"
         onFinish={onFinish}
-        initialValues={{
-          category: 'all',
-          stock: 0,
-          rating: 0,
-          reviewCount: 0,
-          isNew: false,
-          isBestSeller: false,
-          features: ['']
-        }}
+        onValuesChange={handleFormChange}
       >
         {renderStepContent()}
         
