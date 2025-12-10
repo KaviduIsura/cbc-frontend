@@ -12,10 +12,13 @@ import {
   RefreshCw,
   ChevronRight,
   Heart,
-  ArrowLeft
+  ArrowLeft,
+  AlertTriangle,
+  Package
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import CartCard from "../../components/cartCard";
+import Modal from "../../components/Modal";
 import { getCartAPI, updateCartItemAPI, removeCartItemAPI, clearCartAPI } from "../../utils/cartApi";
 import toast from "react-hot-toast";
 
@@ -27,6 +30,7 @@ export default function Cart() {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [showClearCartModal, setShowClearCartModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -118,7 +122,13 @@ export default function Cart() {
     }
   };
 
-  const handleClearCart = async () => {
+  const handleClearCartClick = () => {
+    if (cart && cart.items.length > 0) {
+      setShowClearCartModal(true);
+    }
+  };
+
+  const handleClearCartConfirm = async () => {
     if (window.confirm("Are you sure you want to clear your cart?")) {
       setIsClearing(true);
       try {
@@ -127,6 +137,7 @@ export default function Cart() {
         if (result.success) {
           setCart({ items: [], total: 0 });
           calculateTotals({ items: [], total: 0 });
+          setShowClearCartModal(false);
           toast.success("Cart cleared");
         } else {
           toast.error(result.message || "Failed to clear cart");
@@ -148,6 +159,17 @@ export default function Cart() {
     // Navigate to checkout or process payment
     // navigate('/checkout');
     toast.success("Proceeding to checkout...");
+  };
+
+  // Calculate cart summary
+  const getCartSummary = () => {
+    if (!cart || !cart.items) return null;
+    
+    const itemCount = cart.items.length;
+    const totalItems = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalValue = subtotal;
+    
+    return { itemCount, totalItems, totalValue };
   };
 
   // Loading state
@@ -190,6 +212,8 @@ export default function Cart() {
     );
   }
 
+  const cartSummary = getCartSummary();
+
   return (
     <div className="min-h-screen pt-20 bg-white">
       {/* Hero */}
@@ -199,7 +223,7 @@ export default function Cart() {
             <div>
               <h1 className="mb-2 text-4xl font-light">Your Cart</h1>
               <p className="text-gray-600">
-                {cart.items.length} item{cart.items.length !== 1 ? 's' : ''}
+                {cartSummary.itemCount} item{cartSummary.itemCount !== 1 ? 's' : ''} • {cartSummary.totalItems} total items
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -211,11 +235,11 @@ export default function Cart() {
               </Link>
               {cart.items.length > 0 && (
                 <button
-                  onClick={handleClearCart}
-                  disabled={isClearing}
-                  className="text-sm font-light text-red-500 hover:text-red-600 disabled:opacity-50"
+                  onClick={handleClearCartClick}
+                  className="flex items-center gap-2 text-sm font-light text-red-500 hover:text-red-600"
                 >
-                  {isClearing ? 'Clearing...' : 'Clear Cart'}
+                  <Trash2 className="w-4 h-4" />
+                  Clear Cart
                 </button>
               )}
             </div>
@@ -365,6 +389,107 @@ export default function Cart() {
           </div>
         </div>
       </div>
+
+      {/* Clear Cart Confirmation Modal */}
+      <Modal
+        isOpen={showClearCartModal}
+        onClose={() => setShowClearCartModal(false)}
+        onConfirm={handleClearCartConfirm}
+        title="Clear Shopping Cart"
+        confirmText="Clear All Items"
+        cancelText="Keep Items"
+        confirmColor="red"
+        isLoading={isClearing}
+        size="md"
+      >
+        <div className="space-y-6">
+          {/* Warning Icon */}
+          <div className="flex justify-center">
+            <div className="p-4 rounded-full bg-red-50">
+              <AlertTriangle className="w-12 h-12 text-red-500" />
+            </div>
+          </div>
+
+          {/* Cart Summary */}
+          <div className="p-4 border border-gray-200 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-600">Items in cart:</span>
+              <span className="font-medium">{cartSummary.itemCount}</span>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-gray-600">Total quantity:</span>
+              <span className="font-medium">{cartSummary.totalItems}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Cart value:</span>
+              <span className="font-medium">${cartSummary.totalValue.toFixed(2)}</span>
+            </div>
+          </div>
+
+          {/* Warning Message */}
+          <div className="p-4 text-sm text-gray-600 rounded-lg bg-amber-50">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">This action cannot be undone</p>
+                <p className="mt-1">All items will be permanently removed from your cart. You'll need to add items again if you change your mind.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Cart Preview */}
+          <div>
+            <h4 className="mb-3 text-sm font-medium text-gray-700">Items that will be removed:</h4>
+            <div className="space-y-2 overflow-y-auto max-h-48">
+              {cart.items.slice(0, 5).map((item) => (
+                <div key={item._id} className="flex items-center gap-3 p-2 border border-gray-100 rounded">
+                  <img
+                    src={item.image || "https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop"}
+                    alt={item.name}
+                    className="w-10 h-10 rounded"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{item.name}</p>
+                    <p className="text-xs text-gray-500">{item.quantity} × ${item.price.toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+              {cart.items.length > 5 && (
+                <div className="text-sm text-center text-gray-500">
+                  ...and {cart.items.length - 5} more items
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Alternative Options */}
+          <div className="p-4 border border-gray-200 rounded-lg">
+            <p className="mb-2 text-sm font-medium text-gray-700">Consider these alternatives:</p>
+            <div className="space-y-2 text-sm">
+              <button 
+                onClick={() => {
+                  // Save all to wishlist
+                  cart.items.forEach(item => {
+                    moveToWishlist(item._id);
+                  });
+                  setShowClearCartModal(false);
+                }}
+                className="flex items-center gap-2 text-left text-green-600 hover:text-green-700"
+              >
+                <Heart className="w-4 h-4" />
+                <span>Save all items to wishlist instead</span>
+              </button>
+              <button 
+                onClick={() => setShowClearCartModal(false)}
+                className="flex items-center gap-2 text-left text-blue-600 hover:text-blue-700"
+              >
+                <Package className="w-4 h-4" />
+                <span>Keep items in cart</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
