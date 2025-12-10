@@ -34,6 +34,7 @@ export default function Checkout() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [showOrderSuccessModal, setShowOrderSuccessModal] = useState(false);
+  const [orderNumber, setOrderNumber] = useState(""); // Store generated order number
   
   // Form states
   const [shippingInfo, setShippingInfo] = useState({
@@ -128,6 +129,16 @@ export default function Checkout() {
   const COD_FEE = 5.99;
   const COD_MIN_AMOUNT = 10;
   const COD_MAX_AMOUNT = 500;
+
+  // Generate order number
+  const generateOrderNumber = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 10; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `ORD-${result}`;
+  };
 
   // Fetch cart data
   useEffect(() => {
@@ -363,10 +374,42 @@ export default function Checkout() {
       const result = await createOrderAPI(orderData);
       
       if (result.success) {
+        // Generate order number for display
+        const generatedOrderNumber = generateOrderNumber();
+        setOrderNumber(generatedOrderNumber);
+        
+        // Clear cart after successful order
         await clearCartAPI();
+        
+        // Show success modal
         setShowOrderSuccessModal(true);
+        
+        // Dispatch cart update event
         window.dispatchEvent(new Event('cartUpdated'));
+        
         toast.success('Order placed successfully!');
+        
+        // Store order number in localStorage for MyOrders page
+        const existingOrders = JSON.parse(localStorage.getItem('userOrders') || '[]');
+        const newOrder = {
+          orderNumber: generatedOrderNumber,
+          orderId: result.order?._id || `temp-${Date.now()}`,
+          date: new Date().toISOString(),
+          status: paymentMethod === 'cod' ? 'pending_payment' : 'pending',
+          total: total,
+          paymentMethod: paymentMethod,
+          deliveryMethod: deliveryMethod,
+          items: cart.items,
+          shippingInfo: shippingInfo,
+          subtotal: subtotal,
+          shipping: shipping,
+          tax: tax,
+          discount: discount,
+          codFee: paymentMethod === 'cod' ? COD_FEE : 0
+        };
+        existingOrders.push(newOrder);
+        localStorage.setItem('userOrders', JSON.stringify(existingOrders));
+        
       } else {
         toast.error(result.message || 'Failed to place order');
       }
@@ -389,6 +432,7 @@ export default function Checkout() {
 
   const handleViewOrder = () => {
     setShowOrderSuccessModal(false);
+    // Navigate to My Orders page
     navigate('/orders');
   };
 
@@ -1176,117 +1220,134 @@ export default function Checkout() {
         </div>
       </div>
 
-      {/* Order Success Modal */}
-      <Modal
-        isOpen={showOrderSuccessModal}
-        onClose={() => setShowOrderSuccessModal(false)}
-        onConfirm={handleContinueShopping}
-        title="Order Confirmed!"
-        confirmText="Continue Shopping"
-        cancelText="View Order"
-        onCancel={handleViewOrder}
-        confirmColor="black"
-        size="md"
-        hideFooter={true}
-      >
-        <div className="space-y-6">
-          <div className="flex justify-center">
-            <div className="p-4 rounded-full bg-green-50">
-              <Check className="w-12 h-12 text-green-500" />
+{/* Order Success Modal - ESSENTIAL INFORMATION ONLY */}
+{showOrderSuccessModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+    <div className="w-full max-w-xl overflow-hidden bg-white shadow-2xl rounded-xl">
+      {/* Modal Header - Simple */}
+      <div className="p-6 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-full">
+              <Check className="w-5 h-5 text-green-600" />
             </div>
+            <h3 className="text-xl font-light text-gray-900">Order Confirmed!</h3>
           </div>
+          <button
+            onClick={() => setShowOrderSuccessModal(false)}
+            className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
-          <div className="text-center">
-            <h3 className="mb-2 text-xl font-light">Thank You for Your Order!</h3>
-            <p className="text-gray-600">
-              {paymentMethod === 'cod' 
-                ? 'Your order has been placed successfully. You will pay when your order arrives.' 
-                : `We've sent a confirmation email to ${shippingInfo.email}`}
-            </p>
+      {/* Essential Content */}
+      <div className="p-6 space-y-6">
+        {/* Main Message */}
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 mb-3 rounded-full bg-green-50">
+            <Check className="w-6 h-6 text-green-500" />
           </div>
+          <h3 className="mb-2 text-lg font-light text-gray-900">Thank You!</h3>
+          <p className="text-sm text-gray-600">
+            {paymentMethod === 'cod' 
+              ? 'Your COD order has been placed successfully.' 
+              : 'Order confirmation sent to your email.'}
+          </p>
+        </div>
 
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Order Number:</span>
-              <span className="font-medium">#{Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
-            </div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Payment Method:</span>
-              <span className="font-medium">
-                {paymentMethod === 'cod' ? 'Cash on Delivery' : 
-                 paymentMethod === 'card' ? 'Credit/Debit Card' : 'PayPal'}
-              </span>
-            </div>
-            {paymentMethod === 'cod' && (
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600">Amount Due:</span>
-                <span className="font-medium text-amber-600">${total.toFixed(2)}</span>
+        {/* Essential Order Details */}
+        <div className="p-5 border border-gray-100 rounded-lg">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {/* Left Column */}
+            <div className="space-y-3">
+              <div>
+                <p className="mb-1 text-xs text-gray-500">Order Number</p>
+                <p className="font-mono font-medium text-gray-900">{orderNumber}</p>
               </div>
-            )}
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Estimated Delivery:</span>
-              <span className="font-medium">
-                {deliveryMethod === 'overnight' ? 'Tomorrow' : 
-                 deliveryMethod === 'express' ? '2-3 business days' : 
-                 '5-7 business days'}
-              </span>
-            </div>
-          </div>
-
-          {paymentMethod === 'cod' && (
-            <div className="p-4 border rounded-lg bg-amber-50 border-amber-200">
-              <h4 className="mb-3 text-sm font-medium text-amber-800">Cash on Delivery Instructions</h4>
-              <div className="space-y-2 text-sm text-amber-700">
-                <div className="flex items-start gap-2">
-                  <DollarSign className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>Please have exact change of <strong>${total.toFixed(2)}</strong> ready</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Phone className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>Delivery team will call 30 minutes before arrival</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>Delivery personnel cannot provide change</span>
-                </div>
+              <div>
+                <p className="mb-1 text-xs text-gray-500">Payment Method</p>
+                <p className="font-medium text-gray-900">
+                  {paymentMethod === 'cod' ? 'Cash on Delivery' : 
+                   paymentMethod === 'card' ? 'Credit/Debit Card' : 'PayPal'}
+                </p>
               </div>
             </div>
-          )}
-
-          <div className="p-4 rounded-lg bg-gray-50">
-            <h4 className="mb-3 text-sm font-medium text-gray-700">What's Next?</h4>
-            <div className="space-y-2 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-500" />
-                <span>Order confirmation sent to your email</span>
+            
+            {/* Right Column */}
+            <div className="space-y-3">
+              <div>
+                <p className="mb-1 text-xs text-gray-500">Total Amount</p>
+                <p className="text-2xl font-light text-gray-900">${total.toFixed(2)}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-blue-500" />
-                <span>We'll notify you when your order ships</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4 text-amber-500" />
-                <span>Track your order in your account</span>
+              <div>
+                <p className="mb-1 text-xs text-gray-500">Delivery</p>
+                <p className="font-medium text-gray-900">
+                  {deliveryMethod === 'overnight' ? 'Tomorrow' : 
+                   deliveryMethod === 'express' ? '2-3 business days' : 
+                   '5-7 business days'}
+                </p>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* COD Important Note */}
+        {paymentMethod === 'cod' && (
+          <div className="p-4 border rounded-lg bg-amber-50 border-amber-200">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+              <div>
+                <p className="mb-1 text-sm font-medium text-amber-800">Payment on Delivery</p>
+                <p className="text-xs text-amber-700">
+                  Please have exact change of <span className="font-bold">${total.toFixed(2)}</span> ready.
+                  We'll call before delivery.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Next Steps - Minimal */}
+        <div className="text-center">
+          <p className="mb-4 text-sm text-gray-600">
+            You can track your order in your account
+          </p>
+          
+          {/* Action Buttons */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <button
               onClick={handleViewOrder}
-              className="w-full px-6 py-3 text-sm font-light text-white transition-colors bg-black rounded-lg hover:bg-gray-800"
+              className="px-5 py-3 text-sm font-light text-white transition-colors bg-gray-900 rounded-lg hover:bg-black"
             >
-              View Order Details
+              View Orders
             </button>
             <button
               onClick={handleContinueShopping}
-              className="w-full px-6 py-3 text-sm font-light text-black transition-colors border border-gray-300 rounded-lg hover:border-black"
+              className="px-5 py-3 text-sm font-light text-gray-900 transition-colors border border-gray-300 rounded-lg hover:border-gray-900"
             >
               Continue Shopping
             </button>
           </div>
         </div>
-      </Modal>
+
+        {/* Simple Footer */}
+        <div className="pt-4 border-t border-gray-100">
+          <p className="text-xs text-center text-gray-500">
+            Order placed on {new Date().toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric',
+              year: 'numeric'
+            })}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

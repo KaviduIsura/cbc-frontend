@@ -14,13 +14,15 @@ import ArganPage from "./home/ingredients/ArganPage";
 import SandalwoodPage from "./home/ingredients/SandalwoodPage";
 import Wishlist from "./home/Wishlist";
 import Checkout from "./home/Checkout";
+import MyOrders from "./home/MyOrders";
+import OrderDetails from "./home/OrderDetails";
 
 export default function HomePage() {
   return (
     <Layout>
       <Routes>
         <Route path="/" element={<Landing />} />
-        
+
         {/* Shop Routes */}
         <Route path="/shop">
           <Route index element={<ProductPage />} />
@@ -30,20 +32,21 @@ export default function HomePage() {
           <Route path="makeup" element={<ProductPage />} />
           <Route path="tools" element={<ProductPage />} />
         </Route>
-        
+
         {/* Product Detail */}
         <Route path="/product/:id" element={<ProductOverview />} />
-        
+
         {/* Cart & Wishlist */}
         <Route path="/cart" element={<Cart />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/checkout" element={<Checkout />} />
-        
+        <Route path="/orders" element={<MyOrders />} />
+        <Route path="/orders/:id" element={<OrderDetails />} />
         {/* Content Pages */}
         <Route path="/story" element={<OurStoryPage />} />
         <Route path="/journal" element={<JournalPage />} />
         <Route path="/rituals" element={<RitualsPage />} />
-        
+
         {/* Ingredients Pages */}
         <Route path="/ingredients">
           <Route index element={<IngredientsIndex />} />
@@ -52,16 +55,19 @@ export default function HomePage() {
           <Route path="argan" element={<ArganPage />} />
           <Route path="sandalwood" element={<SandalwoodPage />} />
         </Route>
-        
+
         {/* Fallback route - 404 */}
-        <Route path="*" element={
-          <div className="flex items-center justify-center min-h-[60vh] pt-20">
-            <div className="text-center">
-              <h1 className="mb-4 text-4xl font-light">404</h1>
-              <p className="mb-6 text-gray-600">Page not found</p>
+        <Route
+          path="*"
+          element={
+            <div className="flex items-center justify-center min-h-[60vh] pt-20">
+              <div className="text-center">
+                <h1 className="mb-4 text-4xl font-light">404</h1>
+                <p className="mb-6 text-gray-600">Page not found</p>
+              </div>
             </div>
-          </div>
-        } />
+          }
+        />
       </Routes>
     </Layout>
   );

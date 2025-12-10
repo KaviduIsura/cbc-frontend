@@ -1,169 +1,95 @@
-// src/utils/orderApi.js
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
+// Vite uses import.meta.env instead of process.env
+const API_URL = import.meta.env.VITE_BACKEND_URL 
+  ? `${import.meta.env.VITE_BACKEND_URL}/api` 
+  : "http://localhost:5001/api";
 
-// Get auth token from localStorage
-const getAuthToken = () => {
-  return localStorage.getItem('token');
-};
+// Create axios instance with auth header
+const api = axios.create({
+  baseURL: API_URL,
+});
 
-// Create new order
+// Add token to requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 export const createOrderAPI = async (orderData) => {
   try {
-    const token = getAuthToken();
-    
-    if (!token) {
-      return {
-        success: false,
-        message: "Please login to place an order",
-        requiresLogin: true
-      };
-    }
-
-    const response = await axios.post(
-      `${API_BASE_URL}/api/orders`,
-      orderData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    return {
-      success: true,
-      message: response.data.message,
-      order: response.data.order
-    };
+    const response = await api.post("/orders", orderData);
+    return response.data;
   } catch (error) {
-    console.error('Error creating order:', error);
-    
-    if (error.response) {
-      return {
-        success: false,
-        message: error.response.data.message || 'Error placing order',
-        error: error.response.data.error
-      };
-    } else if (error.request) {
-      return {
-        success: false,
-        message: 'Network error. Please check your connection.'
-      };
-    } else {
-      return {
-        success: false,
-        message: 'An unexpected error occurred'
-      };
-    }
+    console.error("Create order error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to create order",
+      error: error.response?.data?.error
+    };
   }
 };
 
-// Get user orders
 export const getOrdersAPI = async () => {
   try {
-    const token = getAuthToken();
-    
-    if (!token) {
-      return {
-        success: false,
-        orders: null,
-        message: 'User not logged in'
-      };
-    }
-
-    const response = await axios.get(
-      `${API_BASE_URL}/api/orders`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
-
-    return {
-      success: true,
-      orders: response.data.orders,
-      message: response.data.message
-    };
+    const response = await api.get("/orders");
+    return response.data;
   } catch (error) {
-    console.error('Error fetching orders:', error);
+    console.error("Get orders error:", error);
     return {
       success: false,
-      orders: null,
-      message: error.response?.data?.message || 'Error fetching orders'
+      message: error.response?.data?.message || "Failed to fetch orders",
+      error: error.response?.data?.error
     };
   }
 };
 
-// Get single order by ID
+export const getUserOrdersAPI = async () => {
+  try {
+    const response = await api.get("/orders/my-orders");
+    return response.data;
+  } catch (error) {
+    console.error("Get user orders error:", error);
+    return {
+      success: false,
+      message: error.response?.data?.message || "Failed to fetch user orders",
+      error: error.response?.data?.error
+    };
+  }
+};
+
 export const getOrderByIdAPI = async (orderId) => {
   try {
-    const token = getAuthToken();
-    
-    if (!token) {
-      return {
-        success: false,
-        order: null,
-        message: 'User not logged in'
-      };
-    }
-
-    const response = await axios.get(
-      `${API_BASE_URL}/api/orders/${orderId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
-
-    return {
-      success: true,
-      order: response.data.order,
-      message: response.data.message
-    };
+    const response = await api.get(`/orders/${orderId}`);
+    return response.data;
   } catch (error) {
-    console.error('Error fetching order:', error);
+    console.error("Get order by id error:", error);
     return {
       success: false,
-      order: null,
-      message: error.response?.data?.message || 'Error fetching order'
+      message: error.response?.data?.message || "Failed to fetch order",
+      error: error.response?.data?.error
     };
   }
 };
 
-// Cancel order
-export const cancelOrderAPI = async (orderId) => {
+export const getQuoteAPI = async (items) => {
   try {
-    const token = getAuthToken();
-    
-    if (!token) {
-      return {
-        success: false,
-        message: 'Please login to cancel order'
-      };
-    }
-
-    const response = await axios.delete(
-      `${API_BASE_URL}/api/orders/${orderId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
-
-    return {
-      success: true,
-      message: response.data.message
-    };
+    const response = await api.post("/orders/quote", { items });
+    return response.data;
   } catch (error) {
-    console.error('Error canceling order:', error);
+    console.error("Get quote error:", error);
     return {
       success: false,
-      message: error.response?.data?.message || 'Error canceling order'
+      message: error.response?.data?.message || "Failed to get quote",
+      error: error.response?.data?.error
     };
   }
 };
