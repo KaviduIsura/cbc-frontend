@@ -13,6 +13,7 @@ import SaffronPage from "./home/ingredients/SaffronPage";
 import ArganPage from "./home/ingredients/ArganPage";
 import SandalwoodPage from "./home/ingredients/SandalwoodPage";
 import Wishlist from "./home/Wishlist";
+import Checkout from "./home/Checkout";
 
 export default function HomePage() {
   return (
@@ -36,6 +37,7 @@ export default function HomePage() {
         {/* Cart & Wishlist */}
         <Route path="/cart" element={<Cart />} />
         <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/checkout" element={<Checkout />} />
         
         {/* Content Pages */}
         <Route path="/story" element={<OurStoryPage />} />

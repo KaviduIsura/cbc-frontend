@@ -1,7 +1,7 @@
 // src/home/cart.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
+import {
   ShoppingBag,
   Trash2,
   Plus,
@@ -14,12 +14,17 @@ import {
   Heart,
   ArrowLeft,
   AlertTriangle,
-  Package
+  Package,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import CartCard from "../../components/cartCard";
 import Modal from "../../components/Modal";
-import { getCartAPI, updateCartItemAPI, removeCartItemAPI, clearCartAPI } from "../../utils/cartApi";
+import {
+  getCartAPI,
+  updateCartItemAPI,
+  removeCartItemAPI,
+  clearCartAPI,
+} from "../../utils/cartApi";
 import toast from "react-hot-toast";
 
 export default function Cart() {
@@ -41,7 +46,7 @@ export default function Cart() {
     setIsLoading(true);
     try {
       const result = await getCartAPI();
-      
+
       if (result.success && result.cart) {
         setCart(result.cart);
         calculateTotals(result.cart);
@@ -64,7 +69,7 @@ export default function Cart() {
     const shipping = subtotal > 75 ? 0 : 8.95;
     const tax = subtotal * 0.08; // 8% tax
     const total = subtotal + shipping + tax;
-    
+
     setSubtotal(subtotal);
     setShipping(shipping);
     setTax(tax);
@@ -73,10 +78,10 @@ export default function Cart() {
 
   const updateQuantity = async (itemId, newQuantity) => {
     if (newQuantity < 1) return;
-    
+
     try {
       const result = await updateCartItemAPI(itemId, newQuantity);
-      
+
       if (result.success) {
         setCart(result.cart);
         calculateTotals(result.cart);
@@ -92,7 +97,7 @@ export default function Cart() {
   const removeItem = async (itemId) => {
     try {
       const result = await removeCartItemAPI(itemId);
-      
+
       if (result.success) {
         setCart(result.cart);
         calculateTotals(result.cart);
@@ -106,17 +111,17 @@ export default function Cart() {
   };
 
   const moveToWishlist = (itemId) => {
-    const item = cart.items.find(item => item._id === itemId);
+    const item = cart.items.find((item) => item._id === itemId);
     if (item) {
-      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
       wishlist.push({
         id: item.productId?._id || item.productId,
         name: item.name,
         price: item.price,
         image: item.image,
-        category: item.category
+        category: item.category,
       });
-      localStorage.setItem('wishlist', JSON.stringify(wishlist));
+      localStorage.setItem("wishlist", JSON.stringify(wishlist));
       toast.success(`Moved ${item.name} to wishlist`);
       removeItem(itemId);
     }
@@ -133,7 +138,7 @@ export default function Cart() {
       setIsClearing(true);
       try {
         const result = await clearCartAPI();
-        
+
         if (result.success) {
           setCart({ items: [], total: 0 });
           calculateTotals({ items: [], total: 0 });
@@ -155,20 +160,20 @@ export default function Cart() {
       toast.error("Your cart is empty");
       return;
     }
-    
+
     // Navigate to checkout or process payment
-    // navigate('/checkout');
+    navigate('/checkout');
     toast.success("Proceeding to checkout...");
   };
 
   // Calculate cart summary
   const getCartSummary = () => {
     if (!cart || !cart.items) return null;
-    
+
     const itemCount = cart.items.length;
     const totalItems = cart.items.reduce((sum, item) => sum + item.quantity, 0);
     const totalValue = subtotal;
-    
+
     return { itemCount, totalItems, totalValue };
   };
 
@@ -178,7 +183,9 @@ export default function Cart() {
       <div className="flex items-center justify-center min-h-[60vh] pt-20">
         <div className="text-center">
           <div className="w-8 h-8 mx-auto mb-4 border-2 border-gray-300 rounded-full border-t-black animate-spin"></div>
-          <p className="text-sm font-light text-gray-500">Loading your cart...</p>
+          <p className="text-sm font-light text-gray-500">
+            Loading your cart...
+          </p>
         </div>
       </div>
     );
@@ -223,7 +230,9 @@ export default function Cart() {
             <div>
               <h1 className="mb-2 text-4xl font-light">Your Cart</h1>
               <p className="text-gray-600">
-                {cartSummary.itemCount} item{cartSummary.itemCount !== 1 ? 's' : ''} • {cartSummary.totalItems} total items
+                {cartSummary.itemCount} item
+                {cartSummary.itemCount !== 1 ? "s" : ""} •{" "}
+                {cartSummary.totalItems} total items
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -269,7 +278,7 @@ export default function Cart() {
                     rating: 4.5,
                     reviewCount: 87,
                     isNew: true,
-                    isBestSeller: false
+                    isBestSeller: false,
                   }}
                   index={index}
                   onUpdateQuantity={updateQuantity}
@@ -285,7 +294,7 @@ export default function Cart() {
             <div className="sticky top-36">
               <div className="p-6 border border-gray-100 rounded-lg">
                 <h2 className="mb-6 text-xl font-light">Order Summary</h2>
-                
+
                 {/* Summary Items */}
                 <div className="mb-6 space-y-4">
                   <div className="flex justify-between">
@@ -302,7 +311,7 @@ export default function Cart() {
                     <span className="text-gray-600">Tax</span>
                     <span className="font-light">${tax.toFixed(2)}</span>
                   </div>
-                  
+
                   {subtotal < 75 && (
                     <div className="p-3 text-sm text-center text-gray-600 rounded-lg bg-gray-50">
                       Add ${(75 - subtotal).toFixed(2)} more for free shipping
@@ -315,7 +324,9 @@ export default function Cart() {
                   <div className="flex justify-between">
                     <span className="text-lg">Total</span>
                     <div className="text-right">
-                      <div className="text-2xl font-light">${total.toFixed(2)}</div>
+                      <div className="text-2xl font-light">
+                        ${total.toFixed(2)}
+                      </div>
                       <div className="text-sm text-gray-500">USD</div>
                     </div>
                   </div>
@@ -325,15 +336,21 @@ export default function Cart() {
                 <div className="py-6 space-y-4">
                   <div className="flex items-center gap-3">
                     <Shield className="w-5 h-5 text-gray-400" />
-                    <span className="text-sm text-gray-600">Secure checkout</span>
+                    <span className="text-sm text-gray-600">
+                      Secure checkout
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Truck className="w-5 h-5 text-gray-400" />
-                    <span className="text-sm text-gray-600">Free shipping over $75</span>
+                    <span className="text-sm text-gray-600">
+                      Free shipping over $75
+                    </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <RefreshCw className="w-5 h-5 text-gray-400" />
-                    <span className="text-sm text-gray-600">30-day returns</span>
+                    <span className="text-sm text-gray-600">
+                      30-day returns
+                    </span>
                   </div>
                 </div>
 
@@ -348,20 +365,29 @@ export default function Cart() {
 
                 {/* Payment Methods */}
                 <div className="mt-6">
-                  <p className="mb-3 text-xs text-center text-gray-500">We accept</p>
+                  <p className="mb-3 text-xs text-center text-gray-500">
+                    We accept
+                  </p>
                   <div className="flex justify-center gap-2">
-                    {['Visa', 'Mastercard', 'Amex', 'PayPal', 'Apple Pay'].map((method) => (
-                      <div key={method} className="px-2 py-1 text-xs font-light text-gray-400 border border-gray-200 rounded">
-                        {method}
-                      </div>
-                    ))}
+                    {["Visa", "Mastercard", "Amex", "PayPal", "Apple Pay"].map(
+                      (method) => (
+                        <div
+                          key={method}
+                          className="px-2 py-1 text-xs font-light text-gray-400 border border-gray-200 rounded"
+                        >
+                          {method}
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Recommendations */}
               <div className="p-6 mt-6 border border-gray-100 rounded-lg">
-                <h3 className="mb-4 text-lg font-light">Complete Your Ritual</h3>
+                <h3 className="mb-4 text-lg font-light">
+                  Complete Your Ritual
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 p-3 transition-colors border border-gray-100 rounded-lg hover:border-gray-200">
                     <div className="w-12 h-12 bg-gray-100 rounded"></div>
@@ -422,7 +448,9 @@ export default function Cart() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Cart value:</span>
-              <span className="font-medium">${cartSummary.totalValue.toFixed(2)}</span>
+              <span className="font-medium">
+                ${cartSummary.totalValue.toFixed(2)}
+              </span>
             </div>
           </div>
 
@@ -432,71 +460,89 @@ export default function Cart() {
               <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-medium">This action cannot be undone</p>
-                <p className="mt-1">All items will be permanently removed from your cart. You'll need to add items again if you change your mind.</p>
+                <p className="mt-1">
+                  All items will be permanently removed from your cart. You'll
+                  need to add items again if you change your mind.
+                </p>
               </div>
             </div>
           </div>
 
           {/* Cart Preview */}
-{/* Cart Preview */}
-<div>
-  <h4 className="mb-3 text-sm font-medium text-gray-700">Items that will be removed:</h4>
-  <div className="space-y-2 overflow-y-auto max-h-48">
-    {cart.items.slice(0, 5).map((item) => {
-      // Simple inline image component with retry logic
-      const CartPreviewImage = ({ src, alt }) => {
-        const [errorCount, setErrorCount] = useState(0);
-        const [imgSrc, setImgSrc] = useState(src);
-        const placeholder = 'https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop';
+          <div>
+            <h4 className="mb-3 text-sm font-medium text-gray-700">
+              Items that will be removed:
+            </h4>
+            <div className="space-y-2 overflow-y-auto max-h-48">
+              {cart.items.slice(0, 5).map((item) => {
+                // Simple inline image component with retry logic
+                const CartPreviewImage = ({ src, alt }) => {
+                  const [errorCount, setErrorCount] = useState(0);
+                  const [imgSrc, setImgSrc] = useState(src);
+                  const placeholder =
+                    "https://images.unsplash.com/photo-1556228578-9c360e1d8d34?q=80&w=1140&auto=format&fit=crop";
 
-        const handleError = () => {
-          if (errorCount < 2) {
-            setErrorCount(prev => prev + 1);
-            // Try reloading with cache bust
-            setImgSrc(src + (src.includes('?') ? '&' : '?') + `t=${Date.now()}`);
-          } else {
-            // Use placeholder after 3 attempts
-            setImgSrc(placeholder);
-          }
-        };
+                  const handleError = () => {
+                    if (errorCount < 2) {
+                      setErrorCount((prev) => prev + 1);
+                      // Try reloading with cache bust
+                      setImgSrc(
+                        src +
+                          (src.includes("?") ? "&" : "?") +
+                          `t=${Date.now()}`
+                      );
+                    } else {
+                      // Use placeholder after 3 attempts
+                      setImgSrc(placeholder);
+                    }
+                  };
 
-        return (
-          <img
-            src={imgSrc || placeholder}
-            alt={alt}
-            className="w-10 h-10 rounded"
-            onError={handleError}
-            loading="lazy"
-          />
-        );
-      };
+                  return (
+                    <img
+                      src={imgSrc || placeholder}
+                      alt={alt}
+                      className="w-10 h-10 rounded"
+                      onError={handleError}
+                      loading="lazy"
+                    />
+                  );
+                };
 
-      return (
-        <div key={item._id} className="flex items-center gap-3 p-2 border border-gray-100 rounded">
-          <CartPreviewImage src={item.image} alt={item.name} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{item.name}</p>
-            <p className="text-xs text-gray-500">{item.quantity} × ${item.price.toFixed(2)}</p>
+                return (
+                  <div
+                    key={item._id}
+                    className="flex items-center gap-3 p-2 border border-gray-100 rounded"
+                  >
+                    <CartPreviewImage src={item.image} alt={item.name} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {item.quantity} × ${item.price.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              {cart.items.length > 5 && (
+                <div className="text-sm text-center text-gray-500">
+                  ...and {cart.items.length - 5} more items
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      );
-    })}
-    {cart.items.length > 5 && (
-      <div className="text-sm text-center text-gray-500">
-        ...and {cart.items.length - 5} more items
-      </div>
-    )}
-  </div>
-</div>
 
           {/* Alternative Options */}
           <div className="p-4 border border-gray-200 rounded-lg">
-            <p className="mb-2 text-sm font-medium text-gray-700">Consider these alternatives:</p>
+            <p className="mb-2 text-sm font-medium text-gray-700">
+              Consider these alternatives:
+            </p>
             <div className="space-y-2 text-sm">
-              <button 
+              <button
                 onClick={() => {
                   // Save all to wishlist
-                  cart.items.forEach(item => {
+                  cart.items.forEach((item) => {
                     moveToWishlist(item._id);
                   });
                   setShowClearCartModal(false);
@@ -506,7 +552,7 @@ export default function Cart() {
                 <Heart className="w-4 h-4" />
                 <span>Save all items to wishlist instead</span>
               </button>
-              <button 
+              <button
                 onClick={() => setShowClearCartModal(false)}
                 className="flex items-center gap-2 text-left text-blue-600 hover:text-blue-700"
               >
