@@ -30,7 +30,6 @@ export default function ProductPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState("all");
@@ -44,6 +43,12 @@ export default function ProductPage() {
     benefits: [],
     scentFamily: []
   });
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
 
   // Price ranges for filtering
   const priceRanges = [
@@ -83,7 +88,11 @@ export default function ProductPage() {
     setLoading(true);
     try {
       // Build query parameters
-      const params = {};
+      const params = {
+        page: currentPage,
+        limit: itemsPerPage
+      };
+      
       if (activeCategory && activeCategory !== 'all') {
         params.category = activeCategory;
       }
@@ -122,11 +131,11 @@ export default function ProductPage() {
       
       // Apply sorting
       switch(sortBy) {
-        case 'price-low': params.sortBy = 'lastPrice'; params.sortOrder = 'asc'; break;
-        case 'price-high': params.sortBy = 'lastPrice'; params.sortOrder = 'desc'; break;
-        case 'rating': params.sortBy = 'rating'; params.sortOrder = 'desc'; break;
-        case 'newest': params.sortBy = 'createdAt'; params.sortOrder = 'desc'; break;
-        default: params.sortBy = 'isBestSeller'; params.sortOrder = 'desc'; break;
+        case 'price-low': params.sortBy = 'price-low'; break;
+        case 'price-high': params.sortBy = 'price-high'; break;
+        case 'rating': params.sortBy = 'rating'; break;
+        case 'newest': params.sortBy = 'newest'; break;
+        default: params.sortBy = 'featured'; break;
       }
       
       console.log("Fetching products with params:", params);
@@ -158,17 +167,34 @@ export default function ProductPage() {
         }));
         
         setProducts(transformedProducts);
-        setFilteredProducts(transformedProducts);
+        
+        // Update pagination info
+        if (response.data.pagination) {
+          setTotalPages(response.data.pagination.totalPages);
+          setCurrentPage(response.data.pagination.page);
+          setTotalProducts(response.data.pagination.total);
+        } else {
+          // Fallback calculation if backend doesn't provide pagination
+          setTotalPages(1);
+          setTotalProducts(transformedProducts.length);
+        }
       }
     } catch (error) {
       console.error("Error fetching products:", error);
       toast.error("Failed to load products. Please try again.");
       // Fallback to empty products
       setProducts([]);
-      setFilteredProducts([]);
+      setTotalPages(1);
+      setCurrentPage(1);
+      setTotalProducts(0);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Reset page to 1
+  const resetPage = () => {
+    setCurrentPage(1);
   };
 
   // Initialize
@@ -199,11 +225,12 @@ export default function ProductPage() {
     if (categories.length > 0) {
       fetchProducts();
     }
-  }, [activeCategory, searchQuery, appliedFilters, sortBy, categories]);
+  }, [activeCategory, searchQuery, appliedFilters, sortBy, categories, currentPage, itemsPerPage]);
 
   const handleCategoryClick = (categoryId) => {
     console.log(`Category clicked: ${categoryId}`);
     setActiveCategory(categoryId);
+    resetPage(); // Reset to first page
     if (categoryId === "all") {
       navigate("/shop");
     } else {
@@ -234,12 +261,14 @@ export default function ProductPage() {
         [filterType]: currentFilters
       };
     });
+    resetPage(); // Reset to first page when filter changes
   };
 
   const clearFilters = () => {
     setActiveCategory("all");
     setSearchQuery("");
     setSortBy("featured");
+    resetPage(); // Reset to first page
     setAppliedFilters({
       price: [],
       skinType: [],
@@ -247,6 +276,80 @@ export default function ProductPage() {
       scentFamily: []
     });
     navigate("/shop");
+  };
+
+  // Pagination handlers
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleItemsPerPageChange = (value) => {
+    setItemsPerPage(value);
+    resetPage(); // Reset to first page when changing items per page
+  };
+
+  // Generate page numbers for pagination
+  const generatePageNumbers = () => {
+    const pages = [];
+    
+    // Always show first page
+    pages.push(1);
+    
+    // If only 1 page, just show it
+    if (totalPages === 1) {
+      return pages;
+    }
+    
+    // Calculate start and end for middle pages
+    let startPage = Math.max(2, currentPage - 1);
+    let endPage = Math.min(totalPages - 1, currentPage + 1);
+    
+    // Adjust if near start
+    if (currentPage <= 2) {
+      endPage = Math.min(totalPages - 1, 4);
+    }
+    
+    // Adjust if near end
+    if (currentPage >= totalPages - 1) {
+      startPage = Math.max(2, totalPages - 3);
+    }
+    
+    // Add ellipsis after first page if needed
+    if (startPage > 2) {
+      pages.push('...');
+    }
+    
+    // Add middle pages
+    for (let i = startPage; i <= endPage; i++) {
+      if (i > 1 && i < totalPages) {
+        pages.push(i);
+      }
+    }
+    
+    // Add ellipsis before last page if needed
+    if (endPage < totalPages - 1) {
+      pages.push('...');
+    }
+    
+    // Add last page
+    pages.push(totalPages);
+    
+    return pages;
   };
 
   // Loading state
@@ -470,7 +573,12 @@ export default function ProductPage() {
             {/* Toolbar */}
             <div className="flex items-center justify-between mb-8">
               <div className="text-sm text-gray-500">
-                Showing <span className="font-light text-black">{filteredProducts.length}</span> {activeCategory !== "all" ? activeCategory : "formulations"}
+                Showing{" "}
+                <span className="font-light text-black">
+                  {totalProducts === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalProducts)}
+                </span>{" "}
+                of <span className="font-light text-black">{totalProducts}</span>{" "}
+                {activeCategory !== "all" ? activeCategory : "formulations"}
               </div>
               
               <div className="flex items-center gap-4">
@@ -509,7 +617,7 @@ export default function ProductPage() {
             </div>
 
             {/* Products */}
-            {filteredProducts.length === 0 ? (
+            {products.length === 0 ? (
               <div className="py-20 text-center">
                 <Sparkles className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                 <h3 className="mb-2 text-lg font-light">No {activeCategory} found</h3>
@@ -522,34 +630,88 @@ export default function ProductPage() {
                 </button>
               </div>
             ) : (
-              <div className={`grid gap-8 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}>
-                {filteredProducts.map((product, index) => (
-                  <ProductCard key={product._id} product={product} index={index} />
-                ))}
-              </div>
-            )}
-
-            {/* Pagination would go here */}
-            {filteredProducts.length > 0 && (
-              <div className="flex justify-center mt-12">
-                <div className="flex items-center gap-2">
-                  <button className="px-4 py-2 text-sm font-light text-gray-500 transition-colors border border-gray-200 rounded-lg hover:border-black">
-                    Previous
-                  </button>
-                  <button className="px-4 py-2 text-sm font-light text-white bg-black border border-black rounded-lg">
-                    1
-                  </button>
-                  <button className="px-4 py-2 text-sm font-light text-gray-500 transition-colors border border-gray-200 rounded-lg hover:border-black">
-                    2
-                  </button>
-                  <button className="px-4 py-2 text-sm font-light text-gray-500 transition-colors border border-gray-200 rounded-lg hover:border-black">
-                    3
-                  </button>
-                  <button className="px-4 py-2 text-sm font-light text-gray-500 transition-colors border border-gray-200 rounded-lg hover:border-black">
-                    Next
-                  </button>
+              <>
+                <div className={`grid gap-8 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}>
+                  {products.map((product, index) => (
+                    <ProductCard key={product._id} product={product} index={index} />
+                  ))}
                 </div>
-              </div>
+
+                {/* Pagination - ALWAYS SHOW when there are products */}
+                {products.length > 0 && (
+                  <div className="flex flex-col items-center justify-between gap-4 mt-12 md:flex-row">
+                    {/* Items per page selector */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-500">Show:</span>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+                        className="py-1 pl-3 pr-8 text-sm font-light text-gray-600 bg-white border border-gray-200 rounded-lg appearance-none focus:outline-none focus:border-black"
+                      >
+                        <option value={12}>12 per page</option>
+                        <option value={24}>24 per page</option>
+                        <option value={48}>48 per page</option>
+                        <option value={96}>96 per page</option>
+                      </select>
+                    </div>
+                    
+                    {/* Page info */}
+                    <div className="text-sm text-gray-500">
+                      Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalProducts)} of {totalProducts} items
+                    </div>
+                    
+                    {/* Pagination buttons */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 1}
+                        className={`px-4 py-2 text-sm font-light transition-colors border border-gray-200 rounded-lg ${
+                          currentPage === 1 
+                            ? 'text-gray-400 cursor-not-allowed opacity-50' 
+                            : 'text-gray-600 hover:border-black hover:text-black'
+                        }`}
+                      >
+                        Previous
+                      </button>
+                      
+                      {/* Page numbers */}
+                      <div className="flex items-center gap-1">
+                        {generatePageNumbers().map((pageNum, index) => (
+                          pageNum === '...' ? (
+                            <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
+                              ...
+                            </span>
+                          ) : (
+                            <button
+                              key={pageNum}
+                              onClick={() => handlePageChange(pageNum)}
+                              className={`w-8 h-8 flex items-center justify-center text-sm rounded-lg ${
+                                currentPage === pageNum
+                                  ? 'font-medium text-white bg-black border border-black'
+                                  : 'font-light text-gray-600 border border-gray-200 hover:border-black'
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          )
+                        ))}
+                      </div>
+                      
+                      <button
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        className={`px-4 py-2 text-sm font-light transition-colors border border-gray-200 rounded-lg ${
+                          currentPage === totalPages
+                            ? 'text-gray-400 cursor-not-allowed opacity-50'
+                            : 'text-gray-600 hover:border-black hover:text-black'
+                        }`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
