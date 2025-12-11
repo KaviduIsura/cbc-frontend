@@ -256,8 +256,8 @@ export default function AddProductForm() {
         stock: finalData.stock,
         description: finalData.description,
         detailedDescription: finalData.detailedDescription,
-        rating: finalData.rating || 0,
-        reviewCount: finalData.reviewCount || 0,
+        rating: 0, // ALWAYS start with 0 rating
+        reviewCount: 0, // ALWAYS start with 0 reviews
         isNew: finalData.isNew || false,
         isBestSeller: finalData.isBestSeller || false,
         images: imageList,
@@ -749,41 +749,8 @@ export default function AddProductForm() {
                       />
                     </Form.Item>
                   </Col>
-                  
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      label="Initial Rating"
-                      name="rating"
-                      initialValue={0}
-                    >
-                      <InputNumber
-                        min={0}
-                        max={5}
-                        step={0.1}
-                        style={{ width: '100%' }}
-                        onChange={(value) => {
-                          setFormData(prev => ({ ...prev, rating: value }));
-                        }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      label="Review Count"
-                      name="reviewCount"
-                      initialValue={0}
-                    >
-                      <InputNumber
-                        min={0}
-                        style={{ width: '100%' }}
-                        onChange={(value) => {
-                          setFormData(prev => ({ ...prev, reviewCount: value }));
-                        }}
-                      />
-                    </Form.Item>
-                  </Col>
                 </Row>
+                {/* REMOVED the Rating and Review Count fields */}
               </Col>
             </Row>
           </Card>
@@ -860,10 +827,12 @@ export default function AddProductForm() {
                 </Space>
               </Descriptions.Item>
               <Descriptions.Item label="Rating">
-                {formData.rating || '0'} / 5.0
+                {/* Always show 0 for new products */}
+                <Tag color="blue">0 / 5.0 (Initial rating)</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Review Count">
-                {formData.reviewCount || '0'} reviews
+                {/* Always show 0 for new products */}
+                <Tag color="blue">0 reviews (Initial count)</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Images" span={2}>
                 {imageList.length > 0 ? (
@@ -1049,10 +1018,9 @@ export default function AddProductForm() {
         initialValues={{
           category: 'all',
           stock: 0,
-          rating: 0,
-          reviewCount: 0,
           isNew: false,
           isBestSeller: false
+          // REMOVED initial values for rating and reviewCount
         }}
       >
         {renderStepContent()}
