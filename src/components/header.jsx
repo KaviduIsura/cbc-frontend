@@ -4,6 +4,7 @@ import { Search, ShoppingBag, Heart, Menu, X, ChevronDown, User, LogOut, Setting
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { getWishlistCount } from '../utils/wishlist'; // Import wishlist functions
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -16,6 +17,10 @@ const Navbar = () => {
   
   // Use the cart context
   const { cartCount, fetchCartCount } = useCart();
+  
+  // Wishlist state
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   // Function to update user state from localStorage
   const updateUserFromStorage = useCallback(() => {
@@ -27,6 +32,7 @@ const Navbar = () => {
         setIsLoggedIn(true);
         setUser(JSON.parse(storedUser));
         fetchCartCount();
+        fetchWishlistCount(); // Fetch wishlist count when user is logged in
       } catch (error) {
         console.error('Error parsing user data:', error);
         // Clear invalid data
@@ -34,12 +40,50 @@ const Navbar = () => {
         localStorage.removeItem('user');
         setIsLoggedIn(false);
         setUser(null);
+        setWishlistCount(0);
       }
     } else {
       setIsLoggedIn(false);
       setUser(null);
+      setWishlistCount(0);
     }
   }, [fetchCartCount]);
+
+  // Fetch wishlist count
+  const fetchWishlistCount = useCallback(async () => {
+    if (!isLoggedIn) {
+      setWishlistCount(0);
+      return;
+    }
+    
+    try {
+      setWishlistLoading(true);
+      const count = await getWishlistCount();
+      setWishlistCount(count);
+    } catch (error) {
+      console.error('Error fetching wishlist count:', error);
+      setWishlistCount(0);
+    } finally {
+      setWishlistLoading(false);
+    }
+  }, [isLoggedIn]);
+
+  // Function to update wishlist count globally (expose to window)
+  const updateWishlistCount = useCallback(() => {
+    if (isLoggedIn) {
+      fetchWishlistCount();
+    } else {
+      setWishlistCount(0);
+    }
+  }, [isLoggedIn, fetchWishlistCount]);
+
+  // Expose updateWishlistCount to window for other components to call
+  useEffect(() => {
+    window.updateWishlistCount = updateWishlistCount;
+    return () => {
+      delete window.updateWishlistCount;
+    };
+  }, [updateWishlistCount]);
 
   // Initial load and event listeners
   useEffect(() => {
@@ -59,14 +103,23 @@ const Navbar = () => {
       }
     };
 
+    // Listen for wishlist update events
+    const handleWishlistUpdateEvent = () => {
+      if (isLoggedIn) {
+        fetchWishlistCount();
+      }
+    };
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('userUpdated', handleUserUpdateEvent);
+    window.addEventListener('wishlistUpdated', handleWishlistUpdateEvent);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('userUpdated', handleUserUpdateEvent);
+      window.removeEventListener('wishlistUpdated', handleWishlistUpdateEvent);
     };
-  }, [updateUserFromStorage]);
+  }, [updateUserFromStorage, isLoggedIn, fetchWishlistCount]);
 
   // Listen for cart update events
   useEffect(() => {
@@ -106,6 +159,7 @@ const Navbar = () => {
     // Update state
     setIsLoggedIn(false);
     setUser(null);
+    setWishlistCount(0);
     setUserProfileDropdown(false);
     setIsMenuOpen(false);
     
@@ -203,11 +257,6 @@ const Navbar = () => {
     return null;
   };
 
-  // Manually trigger user update (for testing)
-  const refreshUserData = () => {
-    updateUserFromStorage();
-  };
-
   return (
     <nav 
       className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white/80 backdrop-blur-sm'}`}
@@ -273,13 +322,37 @@ const Navbar = () => {
               <Search className="w-5 h-5" />
             </button>
             
+            {/* Wishlist Button */}
             {isLoggedIn && (
-              <button className="relative transition-colors hover:text-gray-600" aria-label="Wishlist" onClick={handleWishlist}>
-                <Heart className="w-5 h-5" />
-                <span className="absolute w-2 h-2 bg-red-500 rounded-full -top-1 -right-1"></span>
+              <button 
+                className="relative transition-colors hover:text-gray-600" 
+                aria-label="Wishlist" 
+                onClick={handleWishlist}
+                disabled={wishlistLoading}
+              >
+                {wishlistLoading ? (
+                  <div className="flex items-center justify-center w-5 h-5">
+                    <div className="w-4 h-4 border-2 border-gray-300 rounded-full border-t-black animate-spin"></div>
+                  </div>
+                ) : (
+                  <>
+                    <Heart className="w-5 h-5" />
+                    {/* Red dot - shows when wishlist has items */}
+                    {wishlistCount > 0 && (
+                      <motion.span 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute flex items-center justify-center w-5 h-5 text-xs text-white bg-red-500 rounded-full -top-2 -right-2"
+                      >
+                        {wishlistCount > 99 ? '99+' : wishlistCount}
+                      </motion.span>
+                    )}
+                  </>
+                )}
               </button>
             )}
             
+            {/* Cart Button */}
             {isLoggedIn && (
               <button className="relative transition-colors hover:text-gray-600" aria-label="Shopping cart" onClick={handleCart}>
                 <ShoppingBag className="w-5 h-5" />
@@ -373,7 +446,7 @@ const Navbar = () => {
                           onClick={() => setUserProfileDropdown(false)}
                         >
                           <Heart className="w-4 h-4" />
-                          Wishlist
+                          Wishlist ({wishlistCount} items)
                         </Link>
                         
                         <div className="flex items-center gap-2 px-4 py-2 text-sm font-light">
@@ -508,7 +581,7 @@ const Navbar = () => {
                         className="block text-sm font-light transition-colors hover:text-gray-600" 
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        Wishlist
+                        Wishlist ({wishlistCount} items)
                       </Link>
                       <div className="block text-sm font-light">
                         Cart ({cartCount} items)

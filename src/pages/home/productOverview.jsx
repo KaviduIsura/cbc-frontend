@@ -30,9 +30,16 @@ import {
   ChevronLeft,
   ChevronDown,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { addToCartAPI } from "../../utils/cartApi";
+import { 
+  addToWishlist, 
+  removeFromWishlistAPI, 
+  checkInWishlist,
+  getWishlistCount 
+} from "../../utils/wishlist";
 
 export default function ProductOverview() {
   const params = useParams();
@@ -44,7 +51,9 @@ export default function ProductOverview() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   // Review states
   const [reviews, setReviews] = useState([]);
@@ -67,6 +76,21 @@ export default function ProductOverview() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // Fetch wishlist count on component mount
+  useEffect(() => {
+    fetchWishlistCount();
+  }, []);
+
+  // Fetch wishlist count
+  const fetchWishlistCount = async () => {
+    try {
+      const count = await getWishlistCount();
+      setWishlistCount(count);
+    } catch (error) {
+      console.error("Error fetching wishlist count:", error);
+    }
+  };
 
   // Transform backend product data
   const transformProductData = (backendProduct) => {
@@ -126,6 +150,9 @@ export default function ProductOverview() {
           
           // Check if user has already reviewed this product
           checkUserReviewStatus(transformedProduct._id);
+          
+          // Check if product is in wishlist
+          checkWishlistStatus(transformedProduct._id);
         } else {
           setStatus("notFound");
         }
@@ -140,6 +167,18 @@ export default function ProductOverview() {
       fetchProduct();
     }
   }, [productId]);
+
+  // Check if product is in wishlist
+  const checkWishlistStatus = async (productId) => {
+    if (!productId) return;
+    
+    try {
+      const result = await checkInWishlist(productId);
+      setIsLiked(result.isInWishlist || false);
+    } catch (error) {
+      console.error("Error checking wishlist status:", error);
+    }
+  };
 
   // Check user's review status for this product
   const checkUserReviewStatus = async (productId) => {
@@ -312,6 +351,56 @@ export default function ProductOverview() {
     }
   };
 
+  // Handle wishlist toggle
+  const handleWishlistToggle = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!product || !product._id) {
+      toast.error('Product not found');
+      return;
+    }
+    
+    setIsWishlistLoading(true);
+    
+    try {
+      if (isLiked) {
+        // Remove from wishlist
+        const success = await removeFromWishlistAPI(product._id);
+        if (success) {
+          setIsLiked(false);
+          setWishlistCount(prev => Math.max(0, prev - 1));
+          toast.success(`${product.productName} removed from wishlist`);
+          
+          // Update navbar wishlist count if function exists
+          if (window.updateWishlistCount) {
+            window.updateWishlistCount();
+          }
+        } else {
+          toast.error('Failed to remove from wishlist');
+        }
+      } else {
+        // Add to wishlist
+        const success = await addToWishlist(product._id);
+        if (success) {
+          setIsLiked(true);
+          setWishlistCount(prev => prev + 1);
+          toast.success(`${product.productName} added to wishlist`);
+          
+          // Update navbar wishlist count if function exists
+          if (window.updateWishlistCount) {
+            window.updateWishlistCount();
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Wishlist error:", error);
+      toast.error(error.message || 'Failed to update wishlist');
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  };
+
   // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -358,38 +447,6 @@ export default function ProductOverview() {
       toast.error('An error occurred while adding to cart');
     } finally {
       setIsAddingToCart(false);
-    }
-  };
-
-  // Add to wishlist
-  const addToWishlist = () => {
-    if (!product) return;
-    
-    setIsLiked(!isLiked);
-    
-    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-    
-    if (!isLiked) {
-      const wishlistItem = {
-        id: product._id,
-        productId: product.productId,
-        name: product.productName,
-        price: selectedVariant.price,
-        image: product.images && product.images.length > 0 ? product.images[0] : "",
-        category: product.category
-      };
-      
-      const exists = wishlist.some(item => item.id === wishlistItem.id);
-      
-      if (!exists) {
-        wishlist.push(wishlistItem);
-        localStorage.setItem('wishlist', JSON.stringify(wishlist));
-        toast.success(`${product.productName} added to wishlist`);
-      }
-    } else {
-      const updatedWishlist = wishlist.filter(item => item.id !== product._id);
-      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
-      toast.success(`${product.productName} removed from wishlist`);
     }
   };
 
@@ -530,11 +587,20 @@ export default function ProductOverview() {
               
               {/* Like Button */}
               <button
-                onClick={addToWishlist}
-                className="absolute p-2 transition-colors rounded-full top-4 right-4 bg-white/80 backdrop-blur-sm hover:bg-white"
-                disabled={!product.inStock}
+                onClick={handleWishlistToggle}
+                disabled={!product.inStock || isWishlistLoading}
+                className="absolute p-2 transition-colors rounded-full top-4 right-4 bg-white/80 backdrop-blur-sm hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
               >
-                <Heart className={`w-5 h-5 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
+                {isWishlistLoading ? (
+                  <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                ) : (
+                  <Heart className={`w-5 h-5 transition-colors ${
+                    isLiked 
+                      ? 'fill-red-500 text-red-500 hover:fill-red-600 hover:text-red-600' 
+                      : 'text-gray-600 hover:text-red-500'
+                  }`} />
+                )}
               </button>
             </div>
 
@@ -706,10 +772,7 @@ export default function ProductOverview() {
                 >
                   {isAddingToCart ? (
                     <span className="flex items-center gap-2">
-                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       Adding...
                     </span>
                   ) : (
@@ -724,18 +787,22 @@ export default function ProductOverview() {
                 </motion.button>
                 
                 <button
-                  onClick={addToWishlist}
-                  disabled={!product.inStock}
-                  className={`p-4 border rounded-lg transition-colors flex items-center justify-center ${
+                  onClick={handleWishlistToggle}
+                  disabled={!product.inStock || isWishlistLoading}
+                  className={`p-4 border rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
                     isLiked 
-                      ? 'border-red-200 bg-red-50 text-red-600' 
+                      ? 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100' 
                       : product.inStock
-                      ? 'border-gray-200 hover:border-gray-400'
-                      : 'border-gray-100 text-gray-400 cursor-not-allowed'
+                      ? 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
+                      : 'border-gray-100 text-gray-400'
                   }`}
                   title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
                 >
-                  <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                  {isWishlistLoading ? (
+                    <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                  ) : (
+                    <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+                  )}
                 </button>
               </div>
             </div>

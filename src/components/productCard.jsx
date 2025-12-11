@@ -1,14 +1,20 @@
 // src/components/ProductCard.jsx
 import { motion } from 'framer-motion';
-import { Heart, Star, MessageSquare, User } from 'lucide-react';
+import { Heart, Star, MessageSquare, User, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { addToCartAPI } from '../utils/cartApi';
+import { 
+  addToWishlist, 
+  removeFromWishlistAPI, 
+  checkInWishlist 
+} from '../utils/wishlist'; // Create this utility file
 import axios from 'axios';
 
-const ProductCard = ({ product, index }) => {
+const ProductCard = ({ product, index, refreshWishlist }) => {
   const [isLiked, setIsLiked] = useState(false);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [imageErrorCount, setImageErrorCount] = useState(0);
   const [currentImage, setCurrentImage] = useState('');
@@ -31,13 +37,29 @@ const ProductCard = ({ product, index }) => {
   // Placeholder image
   const placeholderImage = 'https://nftcalendar.io/storage/uploads/2022/02/21/image-not-found_0221202211372462137974b6c1a.png';
 
-  // Initialize current image
+  // Initialize current image and check wishlist status
   useEffect(() => {
     setCurrentImage(initialImage);
-    // Initialize with product data
     setAverageRating(product.rating || 0);
     setReviewCount(product.reviewCount || 0);
-  }, [initialImage, product.rating, product.reviewCount]);
+    
+    // Check if product is in wishlist on component mount
+    if (productId) {
+      checkWishlistStatus();
+    }
+  }, [initialImage, product.rating, product.reviewCount, productId]);
+
+  // Check if product is in wishlist
+  const checkWishlistStatus = async () => {
+    if (!productId) return;
+    
+    try {
+      const result = await checkInWishlist(productId);
+      setIsLiked(result.isInWishlist || false);
+    } catch (error) {
+      console.error("Error checking wishlist status:", error);
+    }
+  };
 
   // Fetch reviews when showReviews is true
   useEffect(() => {
@@ -130,28 +152,51 @@ const ProductCard = ({ product, index }) => {
   };
 
   // Handle wishlist toggle
-  const handleWishlistClick = (e) => {
+  const handleWishlistClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsLiked(!isLiked);
     
-    // Save to localStorage for now
-    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-    if (!isLiked) {
-      wishlist.push({
-        id: productId,
-        name: product.name || product.productName,
-        price: product.lastPrice || product.price,
-        image: currentImage, // Use current image
-        category: product.category
-      });
-      toast.success('Added to wishlist');
-    } else {
-      const updatedWishlist = wishlist.filter(item => item.id !== productId);
-      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
-      toast.success('Removed from wishlist');
+    if (!productId) {
+      toast.error('Product not found');
+      return;
     }
-    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+    
+    setIsWishlistLoading(true);
+    
+    try {
+      if (isLiked) {
+        // Remove from wishlist
+        const success = await removeFromWishlistAPI(productId);
+        if (success) {
+          setIsLiked(false);
+          toast.success('Removed from wishlist');
+          
+          // Call refresh callback if provided
+          if (refreshWishlist) {
+            refreshWishlist();
+          }
+        } else {
+          toast.error('Failed to remove from wishlist');
+        }
+      } else {
+        // Add to wishlist
+        const success = await addToWishlist(productId);
+        if (success) {
+          setIsLiked(true);
+          toast.success('Added to wishlist');
+          
+          // Call refresh callback if provided
+          if (refreshWishlist) {
+            refreshWishlist();
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Wishlist error:", error);
+      toast.error(error.message || 'Failed to update wishlist');
+    } finally {
+      setIsWishlistLoading(false);
+    }
   };
 
   // Handle add to cart with API
@@ -200,6 +245,9 @@ const ProductCard = ({ product, index }) => {
     setImageErrorCount(0);
     setCurrentImage(initialImage);
   }, [product._id, initialImage]);
+
+  // Create a new file: src/utils/wishlistApi.js
+  // Add this utility functions file
 
   // If no product ID, render non-clickable card
   if (!productId) {
@@ -328,9 +376,18 @@ const ProductCard = ({ product, index }) => {
           {/* Wishlist Heart */}
           <button
             onClick={handleWishlistClick}
-            className="absolute z-10 transition-opacity opacity-0 top-4 right-4 group-hover:opacity-100"
+            disabled={isWishlistLoading}
+            className="absolute z-10 transition-opacity opacity-0 top-4 right-4 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Heart className={`w-5 h-5 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
+            {isWishlistLoading ? (
+              <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+            ) : (
+              <Heart className={`w-5 h-5 transition-colors ${
+                isLiked 
+                  ? 'fill-red-500 text-red-500 hover:fill-red-600 hover:text-red-600' 
+                  : 'text-gray-600 hover:text-red-500'
+              }`} />
+            )}
           </button>
 
           {/* Image */}
@@ -408,14 +465,13 @@ const ProductCard = ({ product, index }) => {
             <button
               onClick={handleAddToCart}
               disabled={isAddingToCart}
-              className={`w-full py-3 mt-4 font-light tracking-wider text-black transition-all border border-black rounded-lg hover:bg-black hover:text-white ${isAddingToCart ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`w-full py-3 mt-4 font-light tracking-wider text-black transition-all border border-black rounded-lg hover:bg-black hover:text-white ${
+                isAddingToCart ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               {isAddingToCart ? (
                 <span className="flex items-center justify-center gap-2">
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Adding...
                 </span>
               ) : (
