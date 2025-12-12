@@ -9,7 +9,7 @@ import {
   addToWishlist, 
   removeFromWishlistAPI, 
   checkInWishlist 
-} from '../utils/wishlist'; // Create this utility file
+} from '../utils/wishlist'
 import axios from 'axios';
 
 const ProductCard = ({ product, index, refreshWishlist }) => {

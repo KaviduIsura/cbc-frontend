@@ -1,6 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import ProductOverview from "./home/productOverview";
-import ProductPage from "./home/product";
+import ProductPage from "./home/Product";
 import Cart from "./home/cart";
 import Landing from "./home/Landing";
 import Layout from "../components/Layout";
