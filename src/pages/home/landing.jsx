@@ -4,10 +4,10 @@ import { ChevronRight, ArrowRight, Sparkles, Filter, Search, Grid, List, X, Refr
 import { motion } from "framer-motion";
 import axios from "axios";
 import ProductCard from "../../components/ProductCard.jsx"
-import HeroSection from "../../components/HeroSection";
-import CategoryGrid from "../../components/CategoryGrid";
-import BenefitsSection from "../../components/BenefitsSection";
-import ImageSlider from "../../components/ImageSlider";
+import HeroSection from "../../components/HeroSection.jsx";
+import CategoryGrid from "../../components/CategoryGrid.jsx";
+import BenefitsSection from "../../components/BenefitsSection.jsx";
+import ImageSlider from "../../components/ImageSlider.jsx";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 
