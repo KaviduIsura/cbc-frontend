@@ -7,7 +7,7 @@ import ProductCard from "../../components/productCard.jsx"
 import HeroSection from "../../components/HeroSection.jsx";
 import CategoryGrid from "../../components/CategoryGrid.jsx";
 import BenefitsSection from "../../components/BenefitsSection.jsx";
-import ImageSlider from "../../components/ImageSlider.jsx";
+import ImageSlider from "../../components/imageSlider.jsx";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 
