@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ChevronRight, ArrowRight, Sparkles, Filter, Search, Grid, List, X, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import axios from "axios";
-import ProductCard from "../../components/ProductCard.jsx"
+import ProductCard from "../../components/productCard.jsx"
 import HeroSection from "../../components/HeroSection.jsx";
 import CategoryGrid from "../../components/CategoryGrid.jsx";
 import BenefitsSection from "../../components/BenefitsSection.jsx";

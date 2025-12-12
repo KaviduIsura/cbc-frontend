@@ -18,7 +18,7 @@ import {
   ArrowRight,
   Loader
 } from "lucide-react";
-import ProductCard from "../../components/ProductCard.jsx";
+import ProductCard from "../../components/productCard";
 import axios from "axios";
 import toast from "react-hot-toast";
 import ProdImg from '../../assets/products.jpg'
