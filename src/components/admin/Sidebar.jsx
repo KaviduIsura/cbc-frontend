@@ -1,7 +1,7 @@
 // src/components/admin/Sidebar.jsx
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Typography, Input, Badge, Button, Tooltip } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Layout, Menu, Avatar, Typography, Input, Badge, Button, Tooltip, Dropdown } from 'antd';
 import {
   DashboardOutlined,
   ShoppingOutlined,
@@ -17,15 +17,131 @@ import {
   LogoutOutlined,
   PoweroffOutlined,
   SearchOutlined,
+  ProfileOutlined,
+  KeyOutlined,
+  EditOutlined
 } from "@ant-design/icons";
+import axios from 'axios';
 
 const { Sider } = Layout;
 const { Title, Text } = Typography;
 const { Search } = Input;
 
-const Sidebar = ({ collapsed, isDarkMode, onLogoutClick }) => {
+// API Configuration
+const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
+const axiosInstance = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add request interceptor to include token
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+const Sidebar = ({ collapsed, onLogoutClick }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname.split('/').pop() || 'dashboard';
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    activeOrders: 0,
+    newReviews: 0
+  });
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    fetchUserData();
+    fetchStats();
+  }, []);
+
+  // Fetch current user data
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setUserData(null);
+        setLoading(false);
+        return;
+      }
+
+      const response = await axiosInstance.get('/api/users/me');
+      
+      if (response.data.success) {
+        setUserData(response.data.user);
+      } else {
+        setUserData(null);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      setUserData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch stats for sidebar
+  const fetchStats = async () => {
+    try {
+      // You would fetch real stats from your API
+      // For now, using mock data
+      setStats({
+        activeOrders: 12,
+        newReviews: 3
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!userData) return 'U';
+    return `${userData.firstName?.[0] || ''}${userData.lastName?.[0] || ''}`;
+  };
+
+  // Get user display name
+  const getUserDisplayName = () => {
+    if (!userData) return 'User';
+    return `${userData.firstName} ${userData.lastName}`;
+  };
+
+  // Get user role display
+  const getUserRole = () => {
+    if (!userData) return 'Guest';
+    return userData.type === 'admin' ? 'Administrator' : 
+           userData.type === 'staff' ? 'Staff' : 'Customer';
+  };
+
+  // User dropdown menu for sidebar (collapsed mode)
+  const userMenu = (
+    <Menu style={{ zIndex: 9999 }}>
+      <Menu.Item key="profile" icon={<ProfileOutlined />} onClick={() => navigate('/admin/profile')}>
+        My Profile
+      </Menu.Item>
+      <Menu.Item key="settings" icon={<SettingOutlined />} onClick={() => navigate('/admin/settings')}>
+        Settings
+      </Menu.Item>
+      <Menu.Divider />
+      <Menu.Item key="logout" icon={<LogoutOutlined />} danger onClick={onLogoutClick}>
+        Logout
+      </Menu.Item>
+    </Menu>
+  );
 
   const menuItems = [
     {
@@ -62,7 +178,7 @@ const Sidebar = ({ collapsed, isDarkMode, onLogoutClick }) => {
       icon: <ShoppingCartOutlined className="text-lg" />,
       label: "Orders",
       path: "/admin/orders",
-      badge: 12,
+      badge: stats.activeOrders,
     },
     {
       key: "customers",
@@ -81,7 +197,7 @@ const Sidebar = ({ collapsed, isDarkMode, onLogoutClick }) => {
       icon: <StarOutlined className="text-lg" />,
       label: "Reviews",
       path: "/admin/reviews",
-      badge: 3,
+      badge: stats.newReviews,
     },
     {
       key: "analytics",
@@ -96,10 +212,10 @@ const Sidebar = ({ collapsed, isDarkMode, onLogoutClick }) => {
       path: "/admin/promotions",
     },
     {
-      key: "settings",
-      icon: <SettingOutlined className="text-lg" />,
-      label: "Settings",
-      path: "/admin/settings",
+      key: "profile",
+      icon: <ProfileOutlined className="text-lg" />,
+      label: "My Profile",
+      path: "/admin/profile",
     },
   ];
 
@@ -160,6 +276,7 @@ const Sidebar = ({ collapsed, isDarkMode, onLogoutClick }) => {
         left: 0,
         top: 0,
         bottom: 0,
+        zIndex: 40,
       }}
     >
       {/* Logo Section */}
@@ -189,33 +306,123 @@ const Sidebar = ({ collapsed, isDarkMode, onLogoutClick }) => {
 
       {/* User Profile */}
       {!collapsed ? (
-        <div className="p-4 mx-4 my-6 bg-teal-50 rounded-xl">
-          <div className="flex items-center space-x-3">
-            <Avatar
-              size={40}
-              src="https://randomuser.me/api/portraits/men/32.jpg"
-              className="border-2 border-white shadow-sm"
-            />
-            <div>
-              <Text strong className="!text-teal-800 text-sm">
-                Alexander Chen
-              </Text>
-              <div className="flex items-center">
-                <div className="w-2 h-2 mr-2 bg-green-400 rounded-full"></div>
-                <Text className="text-xs text-teal-500">
-                  Super Admin
+        <div className="p-4 mx-4 my-4 bg-teal-50 rounded-xl">
+          {loading ? (
+            <div className="flex items-center space-x-3">
+              <Avatar size={40} className="bg-teal-100 border-2 border-white shadow-sm">
+                <UserOutlined className="text-teal-600" />
+              </Avatar>
+              <div>
+                <Text strong className="!text-teal-800 text-sm">
+                  Loading...
                 </Text>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 mr-2 bg-gray-400 rounded-full"></div>
+                  <Text className="text-xs text-teal-500">
+                    Loading role...
+                  </Text>
+                </div>
               </div>
             </div>
-          </div>
+          ) : userData ? (
+            <div className="space-y-2">
+              <div className="flex items-center space-x-3">
+                <Avatar
+                  size={40}
+                  src={userData.profilePic}
+                  className="bg-teal-100 border-2 border-white shadow-sm"
+                >
+                  {getUserInitials()}
+                </Avatar>
+                <div>
+                  <Text strong className="!text-teal-800 text-sm block">
+                    {getUserDisplayName()}
+                  </Text>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 mr-2 bg-green-400 rounded-full"></div>
+                    <Text className="text-xs text-teal-500">
+                      {getUserRole()}
+                    </Text>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Quick Profile Actions */}
+              <div className="flex items-center justify-between pt-2 mt-2 border-t border-teal-100">
+                <Button 
+                  type="text" 
+                  size="small" 
+                  icon={<EditOutlined />}
+                  onClick={() => navigate('/admin/profile')}
+                  className="text-teal-600 hover:text-teal-700 hover:bg-teal-100"
+                >
+                  Edit Profile
+                </Button>
+                {/* <Button 
+                  type="text" 
+                  size="small" 
+                  icon={<KeyOutlined />}
+                  onClick={() => navigate('/admin/profile?tab=password')}
+                  className="text-teal-600 hover:text-teal-700 hover:bg-teal-100"
+                >
+                  Change Password
+                </Button> */}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-3">
+              <Avatar size={40} className="bg-teal-100 border-2 border-white shadow-sm">
+                <UserOutlined className="text-teal-600" />
+              </Avatar>
+              <div>
+                <Text strong className="!text-teal-800 text-sm">
+                  Not Logged In
+                </Text>
+                <Button 
+                  type="link" 
+                  size="small" 
+                  onClick={() => navigate('/login')}
+                  className="!p-0 !h-auto text-teal-600 hover:text-teal-700"
+                >
+                  Click to Login
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="flex justify-center my-6">
-          <Avatar
-            size={40}
-            src="https://randomuser.me/api/portraits/men/32.jpg"
-            className="border-2 border-white shadow-sm"
-          />
+        <div className="flex justify-center my-4">
+          {loading ? (
+            <Avatar size={40} className="bg-teal-100 border-2 border-white shadow-sm">
+              <UserOutlined className="text-teal-600" />
+            </Avatar>
+          ) : userData ? (
+            <Dropdown 
+              overlay={userMenu} 
+              trigger={["click"]}
+              placement="rightTop"
+              overlayStyle={{ 
+                zIndex: 9999,
+                position: 'fixed'
+              }}
+            >
+              <Avatar
+                size={40}
+                src={userData.profilePic}
+                className="bg-teal-100 border-2 border-white shadow-sm cursor-pointer"
+              >
+                {getUserInitials()}
+              </Avatar>
+            </Dropdown>
+          ) : (
+            <Avatar 
+              size={40} 
+              className="bg-teal-100 border-2 border-white shadow-sm cursor-pointer"
+              onClick={() => navigate('/login')}
+            >
+              <UserOutlined className="text-teal-600" />
+            </Avatar>
+          )}
         </div>
       )}
 
@@ -254,12 +461,20 @@ const Sidebar = ({ collapsed, isDarkMode, onLogoutClick }) => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Text className="text-xs text-teal-600">Active Orders</Text>
-                <Badge count={12} size="small" style={{ backgroundColor: '#08979c' }} />
+                <Badge count={stats.activeOrders} size="small" style={{ backgroundColor: '#08979c' }} />
               </div>
               <div className="flex items-center justify-between">
                 <Text className="text-xs text-teal-600">New Reviews</Text>
-                <Badge count={3} size="small" style={{ backgroundColor: '#08979c' }} />
+                <Badge count={stats.newReviews} size="small" style={{ backgroundColor: '#08979c' }} />
               </div>
+              {userData && (
+                <div className="flex items-center justify-between pt-2 mt-2 border-t border-teal-200">
+                  <Text className="text-xs text-teal-600">Last Login</Text>
+                  <Text className="text-xs font-medium text-teal-700">
+                    {userData.lastLogin ? new Date(userData.lastLogin).toLocaleDateString() : 'Today'}
+                  </Text>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -267,10 +482,10 @@ const Sidebar = ({ collapsed, isDarkMode, onLogoutClick }) => {
         {/* Collapsed Mode Quick Actions */}
         {collapsed && (
           <div className="flex flex-col items-center px-2 py-4 space-y-4">
-            <Badge count={12} size="small" style={{ backgroundColor: '#08979c' }}>
+            <Badge count={stats.activeOrders} size="small" style={{ backgroundColor: '#08979c' }}>
               <ShoppingCartOutlined className="text-lg text-teal-600" />
             </Badge>
-            <Badge count={3} size="small" style={{ backgroundColor: '#08979c' }}>
+            <Badge count={stats.newReviews} size="small" style={{ backgroundColor: '#08979c' }}>
               <BellOutlined className="text-lg text-teal-600" />
             </Badge>
           </div>
@@ -286,6 +501,7 @@ const Sidebar = ({ collapsed, isDarkMode, onLogoutClick }) => {
               onClick={onLogoutClick}
               className="w-full text-red-500 border-teal-200 hover:border-red-300 hover:bg-red-50 hover:text-red-600"
               size="large"
+              loading={loading}
             >
               Logout
             </Button>
@@ -301,6 +517,7 @@ const Sidebar = ({ collapsed, isDarkMode, onLogoutClick }) => {
                 className="text-red-500 hover:text-red-600 hover:bg-red-50"
                 size="large"
                 shape="circle"
+                loading={loading}
               />
             </Tooltip>
           </div>

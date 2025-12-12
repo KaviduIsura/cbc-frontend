@@ -1,7 +1,6 @@
 // src/pages/admin/AdminOrdersPage.jsx
 import React, { useState, useEffect } from 'react';
 import {
-  Table,
   Card,
   Tag,
   Button,
@@ -28,7 +27,10 @@ import {
   Tabs,
   Progress,
   Spin,
-  Switch
+  Switch,
+  List,
+  Empty,
+  Pagination
 } from 'antd';
 import {
   SearchOutlined,
@@ -57,7 +59,10 @@ import {
   PlusOutlined,
   ReloadOutlined,
   CheckOutlined,
-  ClearOutlined
+  ClearOutlined,
+  EnvironmentOutlined,
+  CalendarOutlined,
+  IdcardOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -119,7 +124,7 @@ const AdminOrdersPage = () => {
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [bulkUpdateModalVisible, setBulkUpdateModalVisible] = useState(false);
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [selectedOrders, setSelectedOrders] = useState([]);
   const [statusForm] = Form.useForm();
   const [bulkStatusForm] = Form.useForm();
   const [searchText, setSearchText] = useState('');
@@ -130,7 +135,7 @@ const AdminOrdersPage = () => {
   });
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 12,
     total: 0,
   });
   const [stats, setStats] = useState({
@@ -142,6 +147,8 @@ const AdminOrdersPage = () => {
     cancelled: 0,
     revenue: 0,
   });
+  const [gridView, setGridView] = useState(true);
+  const [selectedFilter, setSelectedFilter] = useState('all');
 
   // Status configurations
   const statusConfig = {
@@ -202,21 +209,26 @@ const AdminOrdersPage = () => {
     free: { color: 'green', label: 'Free Shipping', icon: <TruckOutlined /> },
   };
 
+  // Quick filter options
+  const quickFilters = [
+    { key: 'all', label: 'All Orders', count: stats.total, color: '#08979c' },
+    { key: 'pending', label: 'Pending', count: stats.pending, color: '#fa8c16' },
+    { key: 'preparing', label: 'Preparing', count: stats.preparing, color: '#1890ff' },
+    { key: 'shipped', label: 'Shipped', count: stats.shipped, color: '#13c2c2' },
+    { key: 'delivered', label: 'Delivered', count: stats.delivered, color: '#52c41a' },
+    { key: 'cancelled', label: 'Cancelled', count: stats.cancelled, color: '#ff4d4f' },
+  ];
+
   // Fetch orders
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      console.log('Fetching orders from:', `${API_URL}/api/orders`);
-      console.log('Token:', localStorage.getItem('token'));
-      
       const response = await axiosInstance.get('/api/orders', {
         params: {
           page: pagination.current,
           limit: pagination.pageSize,
         },
       });
-
-      console.log('API Response:', response.data);
 
       if (response.data.success) {
         const ordersData = response.data.orders || [];
@@ -242,10 +254,8 @@ const AdminOrdersPage = () => {
       let errorMessage = 'Failed to fetch orders. Please try again.';
       
       if (error.response) {
-        console.error('Response error:', error.response.data);
         errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
       } else if (error.request) {
-        console.error('No response:', error.request);
         errorMessage = 'No response from server. Please check if backend is running.';
       }
       
@@ -278,26 +288,17 @@ const AdminOrdersPage = () => {
   // Update order status
   const updateOrderStatus = async (orderId, status, notes = '') => {
     try {
-      console.log('Updating order status:', { orderId, status, notes });
-      
       const response = await axiosInstance.put(`/api/orders/${orderId}/status`, { 
         status,
         notes 
       });
 
-      console.log('Update response:', response.data);
-
       if (response.data.success) {
         message.success(`Order status updated to ${statusConfig[status]?.label || status}`);
-        
-        // Refresh orders list
         fetchOrders();
-        
-        // Close modal and reset form
         setStatusModalVisible(false);
         statusForm.resetFields();
         
-        // Also close view modal if it's open
         if (viewModalVisible) {
           setViewModalVisible(false);
         }
@@ -345,7 +346,7 @@ const AdminOrdersPage = () => {
 
   // Bulk status update
   const handleBulkStatusUpdate = async (status, notes = '') => {
-    if (selectedRowKeys.length === 0) {
+    if (selectedOrders.length === 0) {
       notification.warning({
         message: 'No Orders Selected',
         description: 'Please select orders to update.',
@@ -354,14 +355,14 @@ const AdminOrdersPage = () => {
     }
 
     Modal.confirm({
-      title: `Update ${selectedRowKeys.length} Orders`,
-      content: `Are you sure you want to update ${selectedRowKeys.length} order(s) to "${statusConfig[status]?.label || status}"?`,
+      title: `Update ${selectedOrders.length} Orders`,
+      content: `Are you sure you want to update ${selectedOrders.length} order(s) to "${statusConfig[status]?.label || status}"?`,
       okText: 'Update All',
       cancelText: 'Cancel',
       okButtonProps: { className: 'bg-teal-600 hover:bg-teal-700' },
       onOk: async () => {
         try {
-          const promises = selectedRowKeys.map(orderId => 
+          const promises = selectedOrders.map(orderId => 
             axiosInstance.put(`/api/orders/${orderId}/status`, { 
               status, 
               notes: notes || `Bulk update: ${statusConfig[status]?.label || status}` 
@@ -380,7 +381,7 @@ const AdminOrdersPage = () => {
           }
           
           fetchOrders();
-          setSelectedRowKeys([]);
+          setSelectedOrders([]);
           setBulkUpdateModalVisible(false);
           bulkStatusForm.resetFields();
         } catch (error) {
@@ -425,6 +426,15 @@ const AdminOrdersPage = () => {
         order.email?.toLowerCase().includes(searchText.toLowerCase()) ||
         (order.shippingInfo?.firstName + ' ' + order.shippingInfo?.lastName).toLowerCase().includes(searchText.toLowerCase())
       );
+    }
+
+    // Quick filter
+    if (selectedFilter !== 'all') {
+      if (selectedFilter === 'pending') {
+        filtered = filtered.filter(order => ['pending', 'pending_payment'].includes(order.status));
+      } else {
+        filtered = filtered.filter(order => order.status === selectedFilter);
+      }
     }
 
     // Status filter
@@ -595,263 +605,29 @@ const AdminOrdersPage = () => {
     }, 250);
   };
 
-  // Table columns
-// Update the columns array in your AdminOrdersPage.jsx
-const columns = [
-  {
-    title: 'Order ID',
-    dataIndex: 'orderId',
-    key: 'orderId',
-    width: 120,
-    fixed: 'left',
-    sorter: (a, b) => a.orderId.localeCompare(b.orderId),
-    render: (text) => (
-      <Text strong className="text-teal-700">
-        {text}
-      </Text>
-    ),
-  },
-  {
-    title: 'Customer Name',
-    key: 'customerName',
-    width: 180,
-    render: (_, record) => {
-      const firstName = record.shippingInfo?.firstName || '';
-      const lastName = record.shippingInfo?.lastName || '';
-      const fullName = `${firstName} ${lastName}`.trim();
-      
-      return (
-        <div className="truncate">
-          <div className="font-medium text-teal-800 truncate">
-            {fullName || 'N/A'}
-          </div>
-          <div className="text-xs text-teal-600 truncate">
-            {record.email || ''}
-          </div>
-        </div>
-      );
-    },
-  },
-  {
-    title: 'Date',
-    dataIndex: 'createdAt',
-    key: 'createdAt',
-    width: 130,
-    sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
-    render: (date) => (
-      <div>
-        <div className="text-teal-800">{dayjs(date).format('MMM D, YYYY')}</div>
-        <div className="text-xs text-teal-500">{dayjs(date).format('h:mm A')}</div>
-      </div>
-    ),
-  },
-  {
-    title: 'Amount',
-    dataIndex: 'total',
-    key: 'total',
-    width: 100,
-    sorter: (a, b) => (a.total || 0) - (b.total || 0),
-    render: (amount) => (
-      <div className="font-bold text-green-600">
-        ${amount?.toFixed(2) || '0.00'}
-      </div>
-    ),
-  },
-  {
-    title: 'Status',
-    dataIndex: 'status',
-    key: 'status',
-    width: 140,
-    render: (status, record) => {
-      const config = statusConfig[status] || { color: 'default', label: status };
-      return (
-        <Space direction="vertical" size={2}>
-          <Tag 
-            color={config.color} 
-            className="px-2 py-1 text-xs capitalize rounded-full"
-            icon={config.icon}
-          >
-            {config.label}
-          </Tag>
-          {record.paymentMethod === 'cod' && !record.isPaid && (
-            <Tag color="red" icon={<ExclamationCircleOutlined />} className="text-xs px-2 py-0.5">
-              Payment Pending
-            </Tag>
-          )}
-        </Space>
-      );
-    },
-  },
-  {
-    title: 'Payment',
-    dataIndex: 'paymentMethod',
-    key: 'paymentMethod',
-    width: 110,
-    render: (method) => {
-      const config = paymentMethodConfig[method] || { color: 'default', label: method };
-      return (
-        <Tag color={config.color} className="text-xs uppercase">
-          {config.label}
-        </Tag>
-      );
-    },
-  },
-  {
-    title: 'Items',
-    key: 'items',
-    width: 80,
-    align: 'center',
-    render: (_, record) => (
-      <Badge 
-        count={record.orderedItems?.length || 0} 
-        style={{ backgroundColor: '#08979c' }}
-        showZero
-      />
-    ),
-  },
-  {
-    title: 'Actions',
-    key: 'actions',
-    width: 160,
-    fixed: 'right',
-    render: (_, record) => {
-      const currentStatus = record.status;
-      
-      return (
-        <Space size="small">
-          <Tooltip title="View Details">
-            <Button
-              type="text"
-              icon={<EyeOutlined />}
-              onClick={() => viewOrderDetails(record._id)}
-              className="text-teal-600 hover:text-teal-700 hover:bg-teal-50"
-              size="small"
-            />
-          </Tooltip>
-          
-          <Tooltip title="Update Status">
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => {
-                setSelectedOrder(record);
-                statusForm.setFieldsValue({ status: record.status });
-                setStatusModalVisible(true);
-              }}
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-              size="small"
-            />
-          </Tooltip>
-          
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  key: 'deliver',
-                  label: 'Mark as Delivered',
-                  icon: <CheckCircleOutlined />,
-                  disabled: currentStatus === 'delivered' || currentStatus === 'cancelled' || currentStatus === 'refunded',
-                  onClick: () => {
-                    Modal.confirm({
-                      title: 'Mark as Delivered',
-                      content: `Are you sure you want to mark order ${record.orderId} as delivered?`,
-                      okText: 'Yes, Mark Delivered',
-                      cancelText: 'Cancel',
-                      okButtonProps: { className: 'bg-green-600 hover:bg-green-700' },
-                      onOk: () => updateOrderStatus(record._id, 'delivered', 'Marked as delivered via quick action'),
-                    });
-                  },
-                },
-                {
-                  key: 'ship',
-                  label: 'Mark as Shipped',
-                  icon: <TruckOutlined />,
-                  disabled: currentStatus === 'shipped' || currentStatus === 'delivered' || currentStatus === 'cancelled' || currentStatus === 'refunded',
-                  onClick: () => {
-                    Modal.confirm({
-                      title: 'Mark as Shipped',
-                      content: `Are you sure you want to mark order ${record.orderId} as shipped?`,
-                      okText: 'Yes, Mark Shipped',
-                      cancelText: 'Cancel',
-                      okButtonProps: { className: 'bg-blue-600 hover:bg-blue-700' },
-                      onOk: () => updateOrderStatus(record._id, 'shipped', 'Marked as shipped via quick action'),
-                    });
-                  },
-                },
-                {
-                  key: 'cancel',
-                  label: 'Cancel Order',
-                  icon: <CloseCircleOutlined />,
-                  disabled: currentStatus === 'cancelled' || currentStatus === 'delivered' || currentStatus === 'refunded',
-                  onClick: () => {
-                    Modal.confirm({
-                      title: 'Cancel Order',
-                      content: `Are you sure you want to cancel order ${record.orderId}? This action cannot be undone.`,
-                      okText: 'Yes, Cancel Order',
-                      cancelText: 'Cancel',
-                      okButtonProps: { className: 'bg-red-600 hover:bg-red-700' },
-                      onOk: () => updateOrderStatus(record._id, 'cancelled', 'Order cancelled via quick action'),
-                    });
-                  },
-                },
-                {
-                  type: 'divider',
-                },
-                record.paymentMethod === 'cod' && !record.isPaid ? {
-                  key: 'markPaid',
-                  label: 'Mark as Paid',
-                  icon: <CheckCircleOutlined />,
-                  onClick: () => {
-                    Popconfirm({
-                      title: 'Mark this order as paid?',
-                      description: 'This will update payment status to paid.',
-                      onConfirm: () => markAsPaid(record._id),
-                      okText: 'Yes',
-                      cancelText: 'No',
-                      okButtonProps: { className: 'bg-teal-600 hover:bg-teal-700' },
-                    });
-                  },
-                } : null,
-                {
-                  key: 'print',
-                  label: 'Print Invoice',
-                  icon: <PrinterOutlined />,
-                  onClick: () => printInvoice(record),
-                },
-              ].filter(item => item !== null),
-            }}
-            trigger={['click']}
-          >
-            <Button
-              type="text"
-              icon={<MoreOutlined />}
-              className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-              size="small"
-            />
-          </Dropdown>
-        </Space>
-      );
-    },
-  },
-].filter(Boolean);
+  // Handle order selection
+  const handleOrderSelect = (orderId) => {
+    if (selectedOrders.includes(orderId)) {
+      setSelectedOrders(selectedOrders.filter(id => id !== orderId));
+    } else {
+      setSelectedOrders([...selectedOrders, orderId]);
+    }
+  };
 
-
-  // Handle table change
-  const handleTableChange = (newPagination, filters, sorter) => {
-    setPagination(newPagination);
-    // In a real implementation, you would fetch with the new pagination
-    // For now, we'll just update the local state
+  // Handle page change
+  const handlePageChange = (page, pageSize) => {
+    setPagination({ ...pagination, current: page, pageSize });
   };
 
   // Initial fetch
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [pagination.current, pagination.pageSize]);
 
   // Apply filters when they change
   useEffect(() => {
     applyFilters();
-  }, [filters, searchText, orders]);
+  }, [filters, searchText, orders, selectedFilter]);
 
   // Order timeline component
   const OrderTimeline = ({ order }) => {
@@ -897,6 +673,182 @@ const columns = [
           </Timeline.Item>
         ))}
       </Timeline>
+    );
+  };
+
+  // Order Card Component
+  const OrderCard = ({ order }) => {
+    const statusConfigItem = statusConfig[order.status] || { color: 'default', label: order.status, icon: null };
+    const paymentConfig = paymentMethodConfig[order.paymentMethod] || { color: 'default', label: order.paymentMethod };
+    const customerName = `${order.shippingInfo?.firstName || ''} ${order.shippingInfo?.lastName || ''}`.trim();
+
+    return (
+      <Card
+        className={`transition-all duration-300 hover:shadow-lg border ${
+          selectedOrders.includes(order._id) 
+            ? 'border-teal-500 bg-teal-50' 
+            : 'border-teal-100 hover:border-teal-300'
+        }`}
+        onClick={(e) => {
+          if (e.target.closest('.order-actions') || e.target.closest('.ant-checkbox-wrapper')) {
+            return;
+          }
+          viewOrderDetails(order._id);
+        }}
+        hoverable
+        size="small"
+      >
+        <div className="relative">
+          {/* Selection Checkbox */}
+          <div className="absolute z-10 top-2 right-2 order-actions">
+            <Switch
+              size="small"
+              checked={selectedOrders.includes(order._id)}
+              onChange={(checked) => handleOrderSelect(order._id)}
+              className={`${selectedOrders.includes(order._id) ? 'bg-teal-600' : ''}`}
+            />
+          </div>
+
+          {/* Order Header */}
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <IdcardOutlined className="text-teal-500" />
+                <Text strong className="text-teal-800 truncate">
+                  {order.orderId}
+                </Text>
+              </div>
+              <div className="flex items-center gap-1 mt-1 text-xs text-teal-600">
+                <CalendarOutlined />
+                {dayjs(order.createdAt).format('MMM D, YYYY')}
+              </div>
+            </div>
+            <Tag 
+              color={statusConfigItem.color} 
+              className="px-2 py-0.5 text-xs capitalize"
+              icon={statusConfigItem.icon}
+            >
+              {statusConfigItem.label}
+            </Tag>
+          </div>
+
+          {/* Customer Info */}
+          <div className="mb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <UserOutlined className="text-teal-500" />
+              <Text className="text-sm font-medium text-teal-800 truncate">
+                {customerName || 'Unknown Customer'}
+              </Text>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-teal-600 truncate">
+              <MailOutlined />
+              {order.email || 'No email'}
+            </div>
+            {order.shippingInfo?.phone && (
+              <div className="flex items-center gap-2 text-xs text-teal-600 truncate">
+                <PhoneOutlined />
+                {order.shippingInfo.phone}
+              </div>
+            )}
+          </div>
+
+          {/* Order Details */}
+          <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+            <div>
+              <div className="text-teal-500">Items</div>
+              <div className="font-medium text-teal-800">
+                {order.orderedItems?.length || 0}
+              </div>
+            </div>
+            <div>
+              <div className="text-teal-500">Payment</div>
+              <div>
+                <Tag color={paymentConfig.color} className="px-1 py-0 text-xs">
+                  {paymentConfig.label}
+                </Tag>
+              </div>
+            </div>
+            {order.shippingInfo?.city && (
+              <div className="col-span-2">
+                <div className="flex items-center gap-1 text-teal-500">
+                  <EnvironmentOutlined />
+                  <span>Location</span>
+                </div>
+                <div className="font-medium text-teal-800 truncate">
+                  {order.shippingInfo.city}, {order.shippingInfo.state}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Amount and Actions */}
+          <div className="flex items-center justify-between pt-3 border-t border-teal-100">
+            <div>
+              <div className="text-xs text-teal-500">Total Amount</div>
+              <div className="text-lg font-bold text-green-600">
+                ${order.total?.toFixed(2) || '0.00'}
+              </div>
+            </div>
+            
+            <Space className="order-actions">
+              <Tooltip title="View Details">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EyeOutlined />}
+                  onClick={() => viewOrderDetails(order._id)}
+                  className="text-teal-600 hover:text-teal-700"
+                />
+              </Tooltip>
+              
+              <Tooltip title="Quick Actions">
+                <Dropdown
+                  menu={{
+                    items: [
+                      {
+                        key: 'view',
+                        label: 'View Details',
+                        icon: <EyeOutlined />,
+                        onClick: () => viewOrderDetails(order._id),
+                      },
+                      {
+                        key: 'update',
+                        label: 'Update Status',
+                        icon: <EditOutlined />,
+                        onClick: () => {
+                          setSelectedOrder(order);
+                          statusForm.setFieldsValue({ status: order.status });
+                          setStatusModalVisible(true);
+                        },
+                      },
+                      {
+                        key: 'print',
+                        label: 'Print Invoice',
+                        icon: <PrinterOutlined />,
+                        onClick: () => printInvoice(order),
+                      },
+                      order.paymentMethod === 'cod' && !order.isPaid ? {
+                        key: 'markPaid',
+                        label: 'Mark as Paid',
+                        icon: <CheckCircleOutlined />,
+                        onClick: () => markAsPaid(order._id),
+                      } : null,
+                    ].filter(Boolean),
+                  }}
+                  trigger={['click']}
+                >
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<MoreOutlined />}
+                    className="text-gray-600 hover:text-gray-700"
+                  />
+                </Dropdown>
+              </Tooltip>
+            </Space>
+          </div>
+        </div>
+      </Card>
     );
   };
 
@@ -1015,13 +967,59 @@ const columns = [
         ))}
       </Row>
 
+      {/* Quick Filters */}
+      <Card className="bg-white border-0 shadow-sm">
+        <div className="flex flex-col justify-between gap-4 mb-4 md:flex-row md:items-center">
+          <Title level={5} className="!mb-0 !text-teal-800">
+            Quick Filters
+          </Title>
+          <div className="text-sm text-teal-600">
+            {selectedOrders.length} order(s) selected
+            {selectedOrders.length > 0 && (
+              <Button
+                type="link"
+                size="small"
+                onClick={() => setSelectedOrders([])}
+                className="ml-2 text-teal-600"
+              >
+                Clear Selection
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+          {quickFilters.map((filter) => (
+            <Button
+              key={filter.key}
+              type={selectedFilter === filter.key ? 'primary' : 'default'}
+              className={`border-teal-200 ${
+                selectedFilter === filter.key 
+                  ? 'bg-teal-600 border-teal-600' 
+                  : 'text-teal-600 hover:text-teal-700 hover:border-teal-300'
+              }`}
+              onClick={() => setSelectedFilter(filter.key)}
+            >
+              {filter.label}
+              <Badge
+                count={filter.count}
+                showZero
+                size="small"
+                className="ml-2"
+                style={{ backgroundColor: filter.color }}
+              />
+            </Button>
+          ))}
+        </div>
+      </Card>
+
       {/* Bulk Actions */}
-      {selectedRowKeys.length > 0 && (
+      {selectedOrders.length > 0 && (
         <Card className="bg-white border-0 border-l-4 shadow-sm border-l-teal-500">
           <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
             <div>
               <Text strong className="text-teal-700">
-                {selectedRowKeys.length} order(s) selected
+                {selectedOrders.length} order(s) selected
               </Text>
               <div className="mt-1 text-sm text-teal-600">
                 Select actions to perform on all selected orders
@@ -1030,7 +1028,7 @@ const columns = [
             <Space>
               <Button
                 size="small"
-                onClick={() => setSelectedRowKeys([])}
+                onClick={() => setSelectedOrders([])}
                 className="text-teal-600 border-teal-200 hover:text-teal-700"
                 icon={<ClearOutlined />}
               >
@@ -1076,7 +1074,7 @@ const columns = [
                   className="bg-teal-600 border-0 hover:bg-teal-700"
                   icon={<EditOutlined />}
                 >
-                  Bulk Update ({selectedRowKeys.length})
+                  Bulk Update ({selectedOrders.length})
                 </Button>
               </Dropdown>
             </Space>
@@ -1090,14 +1088,14 @@ const columns = [
         title={
           <div className="flex items-center">
             <FilterOutlined className="mr-2 text-teal-600" />
-            <span className="text-teal-800">Filters</span>
+            <span className="text-teal-800">Advanced Filters</span>
           </div>
         }
       >
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} md={8}>
             <Input
-              placeholder="Search orders..."
+              placeholder="Search by Order ID, Name, or Email..."
               prefix={<SearchOutlined className="text-teal-400" />}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
@@ -1150,6 +1148,7 @@ const columns = [
               block
               onClick={() => {
                 setSearchText('');
+                setSelectedFilter('all');
                 setFilters({
                   status: null,
                   paymentMethod: null,
@@ -1158,13 +1157,13 @@ const columns = [
               }}
               className="text-teal-600 border-teal-200 hover:text-teal-700 hover:border-teal-300"
             >
-              Clear Filters
+              Clear All
             </Button>
           </Col>
         </Row>
       </Card>
 
-      {/* Orders Table */}
+      {/* Orders Grid */}
       <Card
         className="bg-white border-0 shadow-sm"
         title={
@@ -1177,51 +1176,152 @@ const columns = [
                 {filteredOrders.length} orders found • ${stats.revenue.toFixed(2)} total revenue
               </Text>
             </div>
-            <div className="flex items-center gap-2">
-              <Text className="text-teal-600">
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-teal-600">
+                View
+              </div>
+              <Switch
+                checkedChildren="Grid"
+                unCheckedChildren="List"
+                checked={gridView}
+                onChange={setGridView}
+              />
+              <div className="text-sm text-teal-600">
                 Showing {((pagination.current - 1) * pagination.pageSize) + 1}-
                 {Math.min(pagination.current * pagination.pageSize, pagination.total)} of {pagination.total}
-              </Text>
-              <Progress
-                percent={Math.round((filteredOrders.length / (pagination.total || 1)) * 100)}
-                size="small"
-                strokeColor="#08979c"
-                showInfo={false}
-                style={{ width: 100 }}
-              />
+              </div>
             </div>
           </div>
         }
       >
         <Spin spinning={loading}>
-          <Table
-            columns={columns}
-            dataSource={filteredOrders}
-            rowKey="_id"
-            loading={loading}
-            pagination={{
-              ...pagination,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total, range) => (
+          {filteredOrders.length === 0 ? (
+            <Empty
+              description={
+                <span className="text-teal-600">
+                  No orders found. Try adjusting your filters.
+                </span>
+              }
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              className="py-12"
+            />
+          ) : gridView ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredOrders
+                .slice(
+                  (pagination.current - 1) * pagination.pageSize,
+                  pagination.current * pagination.pageSize
+                )
+                .map((order) => (
+                  <OrderCard key={order._id} order={order} />
+                ))}
+            </div>
+          ) : (
+            <List
+              dataSource={filteredOrders.slice(
+                (pagination.current - 1) * pagination.pageSize,
+                pagination.current * pagination.pageSize
+              )}
+              renderItem={(order) => (
+                <List.Item
+                  className={`p-4 mb-2 transition-colors rounded-lg border ${
+                    selectedOrders.includes(order._id)
+                      ? 'border-teal-500 bg-teal-50'
+                      : 'border-teal-100 hover:bg-teal-50'
+                  }`}
+                  actions={[
+                    <Tooltip title="View Details">
+                      <Button
+                        type="text"
+                        icon={<EyeOutlined />}
+                        onClick={() => viewOrderDetails(order._id)}
+                        className="text-teal-600 hover:text-teal-700"
+                      />
+                    </Tooltip>,
+                    <Tooltip title="Update Status">
+                      <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          statusForm.setFieldsValue({ status: order.status });
+                          setStatusModalVisible(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-700"
+                      />
+                    </Tooltip>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          size="small"
+                          checked={selectedOrders.includes(order._id)}
+                          onChange={(checked) => handleOrderSelect(order._id)}
+                          className={`${selectedOrders.includes(order._id) ? 'bg-teal-600' : ''}`}
+                        />
+                        <Avatar
+                          style={{ backgroundColor: statusConfig[order.status]?.color || '#08979c' }}
+                          icon={<ShoppingCartOutlined />}
+                        />
+                      </div>
+                    }
+                    title={
+                      <div className="flex items-center gap-2">
+                        <Text strong className="text-teal-800">
+                          {order.orderId}
+                        </Text>
+                        <Tag 
+                          color={statusConfig[order.status]?.color || 'default'} 
+                          className="text-xs"
+                        >
+                          {statusConfig[order.status]?.label || order.status}
+                        </Tag>
+                      </div>
+                    }
+                    description={
+                      <div className="space-y-1">
+                        <div className="text-teal-700">
+                          {order.shippingInfo?.firstName} {order.shippingInfo?.lastName} • {order.email}
+                        </div>
+                        <div className="text-sm text-teal-600">
+                          {dayjs(order.createdAt).format('MMM D, YYYY h:mm A')} • 
+                          {order.shippingInfo?.city && ` ${order.shippingInfo.city}, ${order.shippingInfo.state}`}
+                        </div>
+                      </div>
+                    }
+                  />
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-green-600">
+                      ${order.total?.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-teal-600">
+                      {order.orderedItems?.length} items
+                    </div>
+                  </div>
+                </List.Item>
+              )}
+            />
+          )}
+
+          {/* Pagination */}
+          <div className="flex justify-center mt-6">
+            <Pagination
+              current={pagination.current}
+              pageSize={pagination.pageSize}
+              total={filteredOrders.length}
+              onChange={handlePageChange}
+              showSizeChanger
+              showQuickJumper
+              showTotal={(total, range) => (
                 <Text className="text-teal-600">
                   {range[0]}-{range[1]} of {total} orders
                 </Text>
-              ),
-            }}
-            onChange={handleTableChange}
-            scroll={{ x: 1200 }}
-            rowClassName="hover:bg-teal-50 transition-colors"
-            rowSelection={{
-              selectedRowKeys,
-              onChange: setSelectedRowKeys,
-              selections: [
-                Table.SELECTION_ALL,
-                Table.SELECTION_INVERT,
-                Table.SELECTION_NONE,
-              ],
-            }}
-          />
+              )}
+              pageSizeOptions={['12', '24', '48', '96']}
+            />
+          </div>
         </Spin>
       </Card>
 
@@ -1297,49 +1397,31 @@ const columns = [
                       }
                       className="mb-4 border-0 shadow-sm"
                     >
-                      <Table
+                      <List
                         dataSource={selectedOrder.orderedItems}
-                        pagination={false}
-                        columns={[
-                          {
-                            title: 'Product',
-                            dataIndex: 'name',
-                            key: 'name',
-                            render: (text, record) => (
+                        renderItem={(item) => (
+                          <List.Item className="py-3 border-0 border-b border-teal-100 last:border-b-0">
+                            <div className="flex items-center justify-between w-full">
                               <div className="flex items-center">
                                 <Avatar
-                                  src={record.image}
+                                  src={item.image}
                                   shape="square"
                                   size={48}
                                   className="mr-3 border border-teal-100"
                                 />
                                 <div>
-                                  <div className="font-medium text-teal-800">{text}</div>
-                                  <div className="text-xs text-teal-500">SKU: {record.productId?.slice(-8)}</div>
+                                  <div className="font-medium text-teal-800">{item.name}</div>
+                                  <div className="text-xs text-teal-500">SKU: {item.productId?.slice(-8)}</div>
                                 </div>
                               </div>
-                            ),
-                          },
-                          {
-                            title: 'Price',
-                            dataIndex: 'price',
-                            key: 'price',
-                            render: (price) => `$${price?.toFixed(2)}`,
-                          },
-                          {
-                            title: 'Quantity',
-                            dataIndex: 'quantity',
-                            key: 'quantity',
-                            align: 'center',
-                          },
-                          {
-                            title: 'Total',
-                            key: 'total',
-                            render: (_, record) => `$${(record.price * record.quantity)?.toFixed(2)}`,
-                            align: 'right',
-                          },
-                        ]}
-                        rowClassName="hover:bg-teal-50"
+                              <div className="text-right">
+                                <div className="font-medium text-teal-800">${item.price?.toFixed(2)}</div>
+                                <div className="text-sm text-teal-600">Qty: {item.quantity}</div>
+                                <div className="font-bold text-green-600">${(item.price * item.quantity)?.toFixed(2)}</div>
+                              </div>
+                            </div>
+                          </List.Item>
+                        )}
                       />
                     </Card>
 
@@ -1647,7 +1729,7 @@ const columns = [
         title={
           <div className="flex items-center">
             <EditOutlined className="mr-2 text-teal-600" />
-            <span className="text-teal-800">Bulk Update {selectedRowKeys.length} Orders</span>
+            <span className="text-teal-800">Bulk Update {selectedOrders.length} Orders</span>
           </div>
         }
         open={bulkUpdateModalVisible}
@@ -1656,7 +1738,7 @@ const columns = [
           bulkStatusForm.resetFields();
         }}
         onOk={() => bulkStatusForm.submit()}
-        okText={`Update ${selectedRowKeys.length} Orders`}
+        okText={`Update ${selectedOrders.length} Orders`}
         okButtonProps={{
           className: 'bg-teal-600 hover:bg-teal-700 border-0',
           icon: <CheckCircleOutlined />,

@@ -120,3 +120,22 @@
 .ant-layout-sider::-webkit-scrollbar-thumb:hover {
   background: rgba(8, 151, 156, 0.5);
 }
+
+/* Add this to your src/index.css or App.css */
+
+/* Fix dropdown z-index issues */
+.header-dropdown {
+  z-index: 1000 !important;
+}
+
+/* Fix Ant Design dropdown styling */
+.ant-dropdown {
+  z-index: 1050 !important;
+}
+
+/* Fix header z-index */
+.ant-layout-header {
+  z-index: 50 !important;
+  position: sticky !important;
+  top: 0 !important;
+}

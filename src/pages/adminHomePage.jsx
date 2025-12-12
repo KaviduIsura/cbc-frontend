@@ -24,6 +24,8 @@ import AddUserForm from "./admin/addAdminForm";
 import AdminAdminstratorPage from "./admin/adminAdminsitratorPage";
 import AdminReviewPage from "./admin/adminReviewPage";
 import AdminOrdersPage from "./admin/AdminOrdersPage";
+import ProfilePage from "../components/admin/ProfilePage";
+import CustomersPage from "./admin/CustomersPage";
 
 const { Content } = Layout;
 
@@ -42,8 +44,12 @@ export default function AdminHomePage() {
 
   return (
     <Layout className="min-h-screen bg-teal-50">
-      {/* Sidebar */}
-      <Sidebar collapsed={collapsed} isDarkMode={isDarkMode} />
+      {/* Sidebar - UPDATED: Added onLogoutClick prop */}
+      <Sidebar 
+        collapsed={collapsed} 
+        isDarkMode={isDarkMode} 
+        onLogoutClick={() => setLogoutModalVisible(true)}
+      />
 
       {/* Main Content Area */}
       <Layout
@@ -73,10 +79,15 @@ export default function AdminHomePage() {
             <Route path="/products/edit/:productId" element={<EditProductForm />} />
             <Route path="/orders" element={<AdminOrdersPage />} />
             <Route path="/orders/:status" element={<AdminOrdersPage />} />
-            <Route path="/customers" element={<AdminUsersPage />} />
+            {/* <Route path="/customers" element={<AdminUsersPage />} /> */}
+            <Route path="/customers" element={<CustomersPage />} />
             <Route path="/admins" element={<AdminAdminstratorPage />} />
             <Route path="/admins/add" element={<AddUserForm />} />
             <Route path="/reviews" element={<AdminReviewPage />} />
+
+            {/* Profile Page Route */}
+            <Route path="/profile" element={<ProfilePage />} />
+
           </Routes>
         </Content>
       </Layout>

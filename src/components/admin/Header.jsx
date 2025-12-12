@@ -1,26 +1,106 @@
 // src/components/admin/Header.jsx
-import React from 'react';
-import { Layout, Avatar, Space, Button, Badge, Dropdown, Menu, Divider, Switch, Typography } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Layout, Avatar, Space, Button, Dropdown, Menu, Divider, Typography } from 'antd';
 import {
   MenuUnfoldOutlined,
   MenuFoldOutlined,
-  BellOutlined,
-  MessageOutlined,
   LogoutOutlined,
   UserOutlined,
   SettingOutlined,
+  LoadingOutlined
 } from "@ant-design/icons";
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const { Header } = Layout;
 const { Text } = Typography;
 
-const HeaderComponent = ({ collapsed, setCollapsed, isDarkMode, setIsDarkMode, setLogoutModalVisible }) => {
+// API Configuration
+const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001';
+const axiosInstance = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add request interceptor to include token
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+const HeaderComponent = ({ collapsed, setCollapsed, setLogoutModalVisible }) => {
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  // Fetch current user data
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setUserData(null);
+        setLoading(false);
+        return;
+      }
+
+      const response = await axiosInstance.get('/api/users/me');
+      
+      if (response.data.success) {
+        setUserData(response.data.user);
+      } else {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUserData(null);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      setUserData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get user display name
+  const getUserDisplayName = () => {
+    if (!userData) return 'Guest';
+    return `${userData.firstName} ${userData.lastName}`;
+  };
+
+  // Get user role display
+  const getUserRole = () => {
+    if (!userData) return 'Guest';
+    return userData.type === 'admin' ? 'Administrator' : 
+           userData.type === 'staff' ? 'Staff' : 'Customer';
+  };
+
+  // User menu
   const userMenu = (
     <Menu>
-      <Menu.Item key="profile" icon={<UserOutlined />}>
+      <Menu.Item key="profile" icon={<UserOutlined />} onClick={() => navigate('/admin/profile')}>
         My Profile
       </Menu.Item>
-      <Menu.Item key="settings" icon={<SettingOutlined />}>
+      <Menu.Item key="settings" icon={<SettingOutlined />} onClick={() => navigate('/admin/settings')}>
         Settings
       </Menu.Item>
       <Menu.Divider />
@@ -35,35 +115,8 @@ const HeaderComponent = ({ collapsed, setCollapsed, isDarkMode, setIsDarkMode, s
     </Menu>
   );
 
-  const notificationsMenu = (
-    <Menu>
-      <Menu.Item key="1">
-        <div className="flex items-center">
-          <Avatar size="small" className="mr-3 bg-teal-500">
-            <BellOutlined />
-          </Avatar>
-          <div>
-            <Text strong>New Order Received</Text>
-            <div className="text-xs text-gray-500">5 minutes ago</div>
-          </div>
-        </div>
-      </Menu.Item>
-      <Menu.Item key="2">
-        <div className="flex items-center">
-          <Avatar size="small" className="mr-3 bg-blue-500">
-            <MessageOutlined />
-          </Avatar>
-          <div>
-            <Text strong>New Message</Text>
-            <div className="text-xs text-gray-500">1 hour ago</div>
-          </div>
-        </div>
-      </Menu.Item>
-    </Menu>
-  );
-
   return (
-    <Header className="!p-0 !h-16 shadow-sm !bg-white">
+    <Header className="!p-0 !h-16 shadow-sm !bg-white !z-50">
       <div className="flex items-center justify-between h-full px-6">
         <div className="flex items-center">
           <Button
@@ -72,68 +125,74 @@ const HeaderComponent = ({ collapsed, setCollapsed, isDarkMode, setIsDarkMode, s
             onClick={() => setCollapsed(!collapsed)}
             className="mr-4 text-teal-700 hover:text-teal-800"
           />
-          <Divider type="vertical" className="h-6" />
-          <Text className="ml-4 text-teal-700">
-            Welcome back, <strong>Alexander</strong>
-          </Text>
+          <Divider type="vertical" className="h-6 mx-4" />
+          <div className="ml-2">
+            {loading ? (
+              <div className="flex items-center">
+                <LoadingOutlined className="text-teal-600" />
+                <Text className="ml-2 text-teal-700">Loading...</Text>
+              </div>
+            ) : userData ? (
+              <div className="flex flex-col">
+                <Text className="text-teal-700">
+                  Welcome back, <strong>{userData.firstName}</strong>
+                </Text>
+              </div>
+            ) : (
+              <Text className="text-teal-700">Welcome to Admin Panel</Text>
+            )}
+          </div>
         </div>
 
-        <Space size="large">
-          {/* Theme Toggle */}
-          <div className="flex items-center">
-            <Text className="mr-2 text-teal-700">
-              {isDarkMode ? "Dark" : "Light"}
-            </Text>
-            <Switch
-              checked={isDarkMode}
-              onChange={setIsDarkMode}
-              checkedChildren="🌙"
-              unCheckedChildren="☀️"
-            />
-          </div>
-
-          {/* Notifications */}
-          <Dropdown overlay={notificationsMenu} trigger={["click"]}>
-            <Badge count={5} size="small" offset={[-2, 2]}>
-              <Button
-                type="text"
-                icon={<BellOutlined />}
-                shape="circle"
-                className="text-teal-700 hover:text-teal-800"
-              />
-            </Badge>
-          </Dropdown>
-
-          {/* Messages */}
-          <Badge count={3} size="small" offset={[-2, 2]}>
-            <Button
-              type="text"
-              icon={<MessageOutlined />}
-              shape="circle"
-              className="text-teal-700 hover:text-teal-800"
-            />
-          </Badge>
-
+        <Space size="large" className="flex items-center h-full">
           {/* User Menu */}
-          <Dropdown overlay={userMenu} trigger={["click"]}>
-            <div className="flex items-center cursor-pointer">
-              <Avatar
-                size={36}
-                src="https://randomuser.me/api/portraits/men/32.jpg"
-                className="border-2 border-teal-400"
-              />
-              {!collapsed && (
-                <div className="ml-3">
-                  <Text strong className="text-teal-800">
-                    Alexander Chen
-                  </Text>
-                  <Text className="block text-xs text-teal-600">
-                    Super Admin
-                  </Text>
-                </div>
-              )}
+          {loading ? (
+            <div className="flex items-center">
+              <Avatar size={36} icon={<LoadingOutlined />} className="border-2 border-teal-200" />
             </div>
-          </Dropdown>
+          ) : userData ? (
+            <Dropdown 
+              overlay={userMenu} 
+              trigger={["click"]}
+              placement="bottomRight"
+              overlayClassName="header-dropdown"
+            >
+              <div className="flex items-center h-full py-3 cursor-pointer">
+                <Avatar
+                  size={36}
+                  src={userData.profilePic || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
+                  className="flex-shrink-0 border-2 border-teal-400"
+                >
+                  {!userData.profilePic && `${userData.firstName?.[0]}${userData.lastName?.[0]}`}
+                </Avatar>
+                {!collapsed && (
+                  <div className="flex flex-col items-start min-w-0 ml-3">
+                    <Text 
+                      strong 
+                      className="text-teal-800 whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]"
+                      title={getUserDisplayName()}
+                    >
+                      {getUserDisplayName()}
+                    </Text>
+                    <Text 
+                      className="text-xs text-teal-600 whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]"
+                      title={getUserRole()}
+                    >
+                      {getUserRole()}
+                    </Text>
+                  </div>
+                )}
+              </div>
+            </Dropdown>
+          ) : (
+            <Button
+              type="primary"
+              className="bg-teal-600 border-0 hover:bg-teal-700"
+              onClick={() => navigate('/login')}
+            >
+              Login
+            </Button>
+          )}
         </Space>
       </div>
     </Header>
