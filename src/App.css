@@ -1,0 +1,122 @@
+/* src/App.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply antialiased bg-teal-50;
+  }
+}
+
+@layer utilities {
+  .container {
+    @apply max-w-7xl;
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar with teal theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f9f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #a3e5e5;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #08979c;
+}
+
+/* Smooth transitions */
+.ant-layout-sider,
+.ant-menu,
+.ant-card,
+.ant-btn {
+  transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+/* Custom antd component styles */
+.ant-menu-item:hover {
+  background-color: rgba(8, 151, 156, 0.1) !important;
+  color: #08979c !important;
+}
+
+.ant-menu-item-selected {
+  background-color: rgba(8, 151, 156, 0.15) !important;
+  color: #08979c !important;
+}
+
+.ant-btn-primary {
+  background: linear-gradient(135deg, #08979c, #13c2c2) !important;
+  border: none !important;
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #067a7e, #08979c) !important;
+}
+
+.ant-card {
+  border-radius: 12px !important;
+}
+
+.ant-input:hover,
+.ant-input:focus {
+  border-color: #08979c !important;
+  box-shadow: 0 0 0 2px rgba(8, 151, 156, 0.1) !important;
+}
+/* Add to App.css */
+.ant-menu-item {
+  transition: all 0.2s ease !important;
+}
+
+.ant-menu-item:hover {
+  transform: translateX(4px) !important;
+}
+
+.ant-menu-item-selected {
+  background: linear-gradient(90deg, rgba(8, 151, 156, 0.1) 0%, rgba(8, 151, 156, 0.05) 100%) !important;
+}
+
+.ant-menu-item::after {
+  border-right: 3px solid #08979c !important;
+}
+
+/* Smooth collapse animation */
+.ant-layout-sider {
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+/* Scrollbar styling for sidebar */
+.ant-layout-sider::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ant-layout-sider::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ant-layout-sider::-webkit-scrollbar-thumb {
+  background: rgba(8, 151, 156, 0.3);
+  border-radius: 2px;
+}
+
+.ant-layout-sider::-webkit-scrollbar-thumb:hover {
+  background: rgba(8, 151, 156, 0.5);
+}

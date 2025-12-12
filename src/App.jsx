@@ -1,3 +1,4 @@
+// src/App.jsx
 import "./App.css";
 import LoginPage from "./pages/login";
 import HomePage from "./pages/home";
@@ -6,30 +7,24 @@ import SigninPage from "./pages/signPage";
 import AdminHomePage from "./pages/adminHomePage";
 import { Toaster } from "react-hot-toast";
 import { CartProvider } from './context/CartContext';
+import ConfigProviderWrapper from './components/ConfigProviderWrapper';
 
 function App() {
   return (
-    <div>
+    <ConfigProviderWrapper>
       <CartProvider>
-      <BrowserRouter>
-        <Toaster />
-        <Routes>
-          {/* All public routes go through HomePage */}
-          <Route path="/*" element={<HomePage />} />
-          
-          {/* Auth pages without Layout */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SigninPage />} />
-          
-          {/* Admin routes */}
-          <Route path="/admin/*" element={<AdminHomePage />} />
-          
-          {/* Catch-all redirect to home */}
-          <Route path="*" element={<HomePage />} />
-        </Routes>
-      </BrowserRouter>
+        <BrowserRouter>
+          <Toaster />
+          <Routes>
+            <Route path="/*" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SigninPage />} />
+            <Route path="/admin/*" element={<AdminHomePage />} />
+            <Route path="*" element={<HomePage />} />
+          </Routes>
+        </BrowserRouter>
       </CartProvider>
-    </div>
+    </ConfigProviderWrapper>
   );
 }
 

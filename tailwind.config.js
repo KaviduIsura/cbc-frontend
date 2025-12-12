@@ -9,6 +9,21 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
+      colors: {
+        teal: {
+          50: '#f0f9f9',
+          100: '#d1f2f2',
+          200: '#a3e5e5',
+          300: '#75d8d8',
+          400: '#47cbcb',
+          500: '#08979c',
+          600: '#067a7e',
+          700: '#045c5f',
+          800: '#033f41',
+          900: '#012122',
+         
+        },
+      },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.3s ease-out',

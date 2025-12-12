@@ -32,8 +32,6 @@ export default function LoginPage() {
         }
       );
       
-      console.log("Login API Response:", response.data);
-      
       if (response.data.success && response.data.token) {
         const { token, user, message } = response.data;
         
@@ -43,20 +41,12 @@ export default function LoginPage() {
         
         toast.success(message || "Login successful!");
         
-        console.log("User data stored:", user);
-        console.log("User type:", user.type);
-        
         // Force a small delay to ensure state is updated
         setTimeout(() => {
           if (user.type === "admin") {
-            console.log("Navigating to admin panel...");
-            // Try multiple approaches to ensure navigation
             window.location.href = "/admin/dashboard";
-            // navigate("/admin/dashboard", { replace: true });
           } else {
-            console.log("Navigating to home page...");
             window.location.href = "/";
-            // navigate("/", { replace: true });
           }
         }, 100);
         
@@ -65,13 +55,6 @@ export default function LoginPage() {
       }
       
     } catch (error) {
-      console.error("Login error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: error.config
-      });
-      
       // Improved error handling
       if (error.response) {
         const { status, data } = error.response;
@@ -136,14 +119,6 @@ export default function LoginPage() {
           <div className="mb-8 text-center">
             <div className="mb-2 text-3xl font-light tracking-wider">ELEVÉ</div>
             <p className="text-gray-500">Sign in to your account</p>
-          </div>
-
-          {/* Debug Info - Remove in production */}
-          <div className="p-4 mb-6 text-xs text-gray-600 border border-yellow-200 rounded-lg bg-yellow-50">
-            <p className="mb-1 font-medium">Debug Info</p>
-            <p>Backend URL: {import.meta.env.VITE_BACKEND_URL}</p>
-            <p>Endpoint: {import.meta.env.VITE_BACKEND_URL}/api/users/login</p>
-            <p className="mt-2 text-yellow-600">Check browser console for detailed logs</p>
           </div>
 
           {/* Login Form */}
@@ -288,12 +263,11 @@ export default function LoginPage() {
               </Link>
             </p>
 
-            {/* Demo Account Info */}
+            {/* Demo Account Info - Optional: Remove or keep as needed */}
             <div className="p-4 mt-6 text-xs text-gray-500 rounded-lg bg-gray-50">
               <p className="mb-1 font-medium">Demo Account</p>
               <p>Email: kavidu100@example.com</p>
               <p>Password: securepassword123</p>
-              <p className="mt-2 text-xs text-gray-400">Note: Make sure this user exists in your database</p>
             </div>
 
             {/* Terms */}
