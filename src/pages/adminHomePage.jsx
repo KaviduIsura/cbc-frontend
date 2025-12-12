@@ -19,13 +19,13 @@ import DefaultPage from "./admin/DefaultPage";
 import AdminProductsPage from "./admin/adminProductsPage";
 import AddProductForm from "./admin/addProductForm";
 import EditProductForm from "./admin/editProductForm";
-import AdminUsersPage from "./admin/adminUsersPage";
 import AddUserForm from "./admin/addAdminForm";
 import AdminAdminstratorPage from "./admin/adminAdminsitratorPage";
 import AdminReviewPage from "./admin/adminReviewPage";
 import AdminOrdersPage from "./admin/AdminOrdersPage";
 import ProfilePage from "../components/admin/ProfilePage";
 import CustomersPage from "./admin/CustomersPage";
+import AdminsPage from "./admin/AdminsPage";
 
 const { Content } = Layout;
 
@@ -79,10 +79,10 @@ export default function AdminHomePage() {
             <Route path="/products/edit/:productId" element={<EditProductForm />} />
             <Route path="/orders" element={<AdminOrdersPage />} />
             <Route path="/orders/:status" element={<AdminOrdersPage />} />
-            {/* <Route path="/customers" element={<AdminUsersPage />} /> */}
+           
             <Route path="/customers" element={<CustomersPage />} />
-            <Route path="/admins" element={<AdminAdminstratorPage />} />
-            <Route path="/admins/add" element={<AddUserForm />} />
+            <Route path="/admins" element={<AdminsPage />} />
+            <Route path="/admins/add" element={<AdminsPage />} />
             <Route path="/reviews" element={<AdminReviewPage />} />
 
             {/* Profile Page Route */}
