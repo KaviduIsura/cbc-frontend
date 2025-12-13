@@ -1,10 +1,10 @@
-# CBC Frontend - E-commerce & Admin Dashboard
+# ELEVÉ Frontend - E-commerce & Admin Dashboard
 
 A modern, full-featured React-based e-commerce platform with comprehensive admin dashboard for managing products, orders, customers, and users.
 
 ## 📋 Project Overview
 
-CBC Frontend is a sophisticated e-commerce application built with React and Vite, featuring:
+ELEVÉ Frontend is a sophisticated e-commerce application built with React and Vite, featuring:
 
 - **Customer-facing e-commerce platform** with product browsing, cart, wishlist, and checkout
 - **Comprehensive admin dashboard** for product and order management
@@ -518,7 +518,7 @@ This project is proprietary and confidential.
 
 ## 👨‍💻 Author
 
-CBC Frontend Development Team
+ELEVÉ Frontend Development Team
 
 ## 📞 Support
 
